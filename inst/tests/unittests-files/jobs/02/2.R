@@ -1,0 +1,11 @@
+Sys.sleep(0.000000)
+options(BatchJobs.on.slave=TRUE)
+library(BatchJobs)
+BatchJobs:::doJob(
+	reg=loadRegistry('/home/bischl/cos/batch_jobs/BatchJobs/skel/inst/tests/unittests-files'),
+	ids=c(2L),
+	multiple.result.files=TRUE,
+	disable.mail=FALSE,
+	first=1,
+	last=2)
+BatchJobs:::setOnSlave(FALSE)
