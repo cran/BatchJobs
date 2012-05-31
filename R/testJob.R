@@ -11,11 +11,13 @@
 #' @seealso \code{\link{reduceResults}}
 #' @export
 #' @examples
+#' \dontrun{
 #' reg <- makeRegistry(id="BatchJobsExample", file.dir=tempfile(), seed=123)
 #' f <- function(x) if (x==1) stop("oops") else x
 #' batchMap(reg, f, 1:2)
 #' testJob(reg, 1)
 #' testJob(reg, 2)
+#'}
 testJob = function(reg, id) {
   checkArg(reg, cl="Registry")
   if (missing(id)) {
@@ -56,9 +58,11 @@ testJob = function(reg, id) {
   # execute
   rhome = Sys.getenv("R_HOME")
   cmd = sprintf("%s/bin/Rscript %s", rhome, getRScriptFilePath(reg, id))
-  message("### Output of new R process starts now ###")
+  stime = Sys.time()
+  message("### Output of new R process starts here ###")
   system(cmd, wait=TRUE)
   message("### Output of new R process ends here ###")
+  messagef("### Approximate running time: %.2f seconds", as.numeric(Sys.time() - stime))
   res = try(loadResult(reg, id, check.id=FALSE))
   if (is.error(res))
     return(NULL)

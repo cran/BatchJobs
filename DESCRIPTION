@@ -13,7 +13,7 @@ Depends: utils, BBmisc (>= 1.1), digest, RSQLite, sendmailR, brew
 Suggests: testthat
 LazyData: yes
 ByteCompile: yes
-Version: 1.0-485
+Version: 1.0-527
 Collate: 'addJob.R' 'applyJobFunction.R' 'batchExpandGrid.R'
         'batchMapQuick.R' 'batchMap.R' 'batchMapResults.R'
         'batchReduce.R' 'batchReduceResults.R' 'buffer.R'
@@ -30,6 +30,6 @@ Collate: 'addJob.R' 'applyJobFunction.R' 'batchExpandGrid.R'
         'setJobFunction.R' 'showClusterStatus.R' 'showLog.R'
         'showStatus.R' 'submitJobs.R' 'testJob.R' 'WorkerLinux.R'
         'Worker.R' 'writeRscripts.R' 'zzz.R'
-Packaged: 2012-05-25 16:22:04 UTC; bischl
+Packaged: 2012-05-31 19:22:16 UTC; bischl
 Repository: CRAN
-Date/Publication: 2012-05-25 17:08:25
+Date/Publication: 2012-06-01 04:41:53
