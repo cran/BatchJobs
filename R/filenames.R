@@ -37,7 +37,7 @@ createShardedDirs = function(reg, ids) {
 makePathAbsolute = function(path) {
   if(substr(path, 1L, 1L) != "/")
     path = normalizePath(path, mustWork=FALSE)
-  # TODO:
+  # FIXME:
   # emulate winslash-behaviour
   # remove this in a future version
   if (grepl("windows", tolower(getOperatingSystem()), fixed=TRUE))
@@ -86,3 +86,9 @@ getResultFilePath = function(reg, id, part=NA_character_) {
   s = if (is.na(part)) "result" else paste("result", part, sep="-")
   getFilePaths(reg, id, s, "RData")
 }
+
+getResourcesDir = function(file.dir)
+  file.path(file.dir, "resources")
+
+getResourcesFilePath = function(reg, timestamp)
+  file.path(getResourcesDir(reg$file.dir), sprintf("resources_%i.RData", timestamp))

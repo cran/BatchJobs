@@ -2,13 +2,18 @@
 \alias{testJob}
 \title{Tests a job by running it with Rscript in a new process.}
 \usage{
-  testJob(reg, id)
+  testJob(reg, id, resources = list())
 }
 \arguments{
   \item{reg}{[\code{\link{Registry}}]\cr Registry.}
 
   \item{id}{[\code{integer(1)}]\cr Id of job to test.
   Default is first job id of registry.}
+
+  \item{resources}{[\code{list}]\cr Usually not needed,
+  unless you call the function \code{\link{getResources}}
+  in your job.  See \code{\link{submitJobs}}.  Default is
+  empty list.}
 }
 \value{
   [any]. Result of job. If the job did not complete because

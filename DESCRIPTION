@@ -9,27 +9,30 @@ Author: Bernd Bischl <bernd_bischl@gmx.net>, Michel Lang
 Maintainer: Bernd Bischl <bernd_bischl@gmx.net>
 URL: http://batchjobs.googlecode.com
 License: BSD
-Depends: utils, BBmisc (>= 1.1), digest, RSQLite, sendmailR, brew
+Depends: BBmisc (>= 1.1-132)
+Imports: utils, digest, DBI, RSQLite, sendmailR, brew, plyr
 Suggests: testthat
 LazyData: yes
 ByteCompile: yes
-Version: 1.0-527
+Version: 1.0-606
 Collate: 'addJob.R' 'applyJobFunction.R' 'batchExpandGrid.R'
-        'batchMapQuick.R' 'batchMap.R' 'batchMapResults.R'
+        'batchMap.R' 'batchMapQuick.R' 'batchMapResults.R'
         'batchReduce.R' 'batchReduceResults.R' 'buffer.R'
-        'checkIdValid.R' 'clusterFunctionsInteractive.R'
+        'checkIdValid.R' 'clusterFunctions.R'
+        'clusterFunctionsHelpers.R' 'clusterFunctionsInteractive.R'
         'clusterFunctionsLocal.R' 'clusterFunctionsLSF.R'
-        'clusterFunctionsMulticore.R' 'clusterFunctions.R'
-        'clusterFunctionsSGE.R' 'clusterFunctionsSSH.R'
-        'clusterFunctionsTorque.R' 'clusterFunctionsUnitTests.R'
-        'conf.R' 'database.R' 'debugMulticore.R' 'debugSSH.R' 'doJob.R'
-        'filenames.R' 'filterResults.R' 'findJobs.R' 'findStatus.R'
-        'getJob.R' 'getJobTimes.R' 'getLogFiles.R' 'helpers.R' 'Job.R'
-        'killJobs.R' 'loadResult.R' 'loadResults.R' 'reduceResults.R'
-        'Registry.R' 'resetJobs.R' 'scheduleWorkerJobs.R' 'sendMail.R'
-        'setJobFunction.R' 'showClusterStatus.R' 'showLog.R'
-        'showStatus.R' 'submitJobs.R' 'testJob.R' 'WorkerLinux.R'
-        'Worker.R' 'writeRscripts.R' 'zzz.R'
-Packaged: 2012-05-31 19:22:16 UTC; bischl
+        'clusterFunctionsMulticore.R' 'clusterFunctionsSGE.R'
+        'clusterFunctionsSSH.R' 'clusterFunctionsTorque.R'
+        'clusterFunctionsUnitTests.R' 'conf.R' 'database.R'
+        'debugMulticore.R' 'debugSSH.R' 'doJob.R' 'filenames.R'
+        'filterResults.R' 'findJobs.R' 'findStatus.R' 'getJob.R'
+        'getJobTimes.R' 'getLogFiles.R' 'grepLogs.R' 'helpers.R'
+        'Job.R' 'killJobs.R' 'loadResult.R' 'loadResults.R'
+        'reduceResults.R' 'Registry.R' 'resetJobs.R' 'Resources.R'
+        'scheduleWorkerJobs.R' 'sendMail.R' 'setJobFunction.R'
+        'showClusterStatus.R' 'showLog.R' 'showStatus.R' 'submitJobs.R'
+        'testJob.R' 'Worker.R' 'WorkerLinux.R' 'writeRscripts.R'
+        'zzz.R'
+Packaged: 2012-07-04 15:12:05 UTC; bischl
 Repository: CRAN
-Date/Publication: 2012-06-01 04:41:53
+Date/Publication: 2012-07-04 15:19:37

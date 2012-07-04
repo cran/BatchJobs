@@ -2,23 +2,28 @@
 \alias{debugSSH}
 \title{Helper function to debug SSH mode.}
 \usage{
-  debugSSH(nodenames, rhome = "", dir = getwd())
+  debugSSH(nodename, rhome = "",
+    r.options = c("--no-save", "--no-restore", "--no-init-file", "--no-site-file"),
+    dir = getwd())
 }
 \arguments{
-  \item{nodenames}{[\code{character}]\cr Nodes on which
-  workers should be constructed for the test.}
+  \item{nodename}{[\code{character(1)}]\cr Node on which
+  worker should be constructed for the test.}
 
-  \item{rhome}{[\code{character}]\cr Paths to R
-  installation on the workers.  Must be have same length
-  and order as \code{nodenames}.  Length 1 is also allowed,
-  which means that the path is the same for all nodes.
-  \dQuote{} means R installation on the PATH is used, of
-  course this implies that it must be on the PATH (also for
-  non-interactive shells)!  Default is \dQuote{}.}
+  \item{rhome}{[\code{character(1)}]\cr Path to R
+  installation on the worker.  \dQuote{} means R
+  installation on the PATH is used, of course this implies
+  that it must be on the PATH (also for non-interactive
+  shells)!  Default is \dQuote{}.}
+
+  \item{r.options}{[\code{list}] Options for R and Rscript,
+  one option per element of the vector, a la
+  \dQuote{--vanilla}.  Default is \code{c("--no-save",
+  "--no-restore", "--no-init-file", "--no-site-file")}.}
 
   \item{dir}{[\code{character(1)}]\cr Path where internally
   used test registries can be created.  Note that this must
-  be shared by all workers.  Default is current working
+  be shared for the worker.  Default is current working
   directory.}
 }
 \value{

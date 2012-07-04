@@ -6,16 +6,32 @@
 #' job has finished. The main use of this \code{ClusterFunctions}
 #' implementation is to test and debug programs on a local computer.
 #'
-#' Both killing and listing jobs is not supported by this
-#' implementation since at any one time there can be only one running
-#' job and while it is running, the master R process is blocked.
+#' Listing jobs returns an empty vector (as no jobs can be running when you call this)
+#' and \code{killJob} returns at once (for the same reason).
 #'
 #' @return [\code{\link{ClusterFunctions}}].
 #' @export
 makeClusterFunctionsInteractive = function() {
   submitJob = function(conf, reg, job.name, rscript, log.file, job.dir, resources) {
-    suppressAll(sys.source(rscript, envir=new.env(), keep.source=FALSE))
+    # open log file for writing
+    fn = file(log.file, open="wt")
+    sink(fn, type="output")
+    sink(fn, type="message")
+    on.exit({
+      sink(NULL, type="output")
+      sink(NULL, type="message")
+      close(fn)
+    })
+
+    # sink both output and message streams
+    try(sys.source(rscript, envir=new.env(), keep.source=FALSE))
+
+    # return job result (always successful)
     makeSubmitJobResult(status=0L, batch.job.id="cfInteractive", msg="")
   }
-  makeClusterFunctions(name="Interactive", submitJob=submitJob, killJob=NULL, listJobs=NULL)
+
+  killJob = function(conf, reg, batch.job.id) NULL
+  listJobs = function(conf, reg) integer(0L)
+
+  makeClusterFunctions(name="Interactive", submitJob=submitJob, killJob=killJob, listJobs=listJobs)
 }

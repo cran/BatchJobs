@@ -8,62 +8,46 @@
 #' appropriate privileges to submit, delete and list jobs on the
 #' cluster (this is usually the case).
 #'
-#' The template file can use any of the resources defined for the job
-#' by accessing the appropriate element of the \code{resources}
-#' list. It is the template file's job to choose a queue for the job
-#' and add any desired resource allocations. A simple example
-#' is provided here
+#' The template file can access all arguments passed to the 
+#' \code{submitJob} function, see here \code{\link{ClusterFunctions}}.
+#' It is the template file's job to choose a queue for the job
+#' and handle the desired resource allocations. 
+#' A simple example is provided here
 #' \url{http://code.google.com/p/batchjobs/source/browse/trunk/BatchJobs/examples/cfLSF/simple.tmpl}
 #' in the package repository on its homepage.
+#' 
+#' The following variables are accessible in the template file:
+#' a) all argu 
+#' 
+#' 
 #'
 #' @param template.file [\code{character(1)}]\cr
 #'   Path to a brew template file that is used for the job file.
 #' @return [\code{\link{ClusterFunctions}}].
 #' @export
 makeClusterFunctionsLSF = function(template.file) {
-  checkArg(template.file, "character", len=1L, na.ok=FALSE)
-  ## Read in template
-  fd = file(template.file, "r")
-  template = paste(readLines(fd), collapse="\n")
-  close(fd)
+  template = cfReadBrewTemplate(template.file)
+  # When LSB_BJOBS_CONSISTENT_EXIT_CODE=Y, the bjobs command exits with 0 only
+  # when unfinished jobs are found, and 255 when no jobs are found,
+  # or a non-existent job ID is entered.
+  Sys.setenv(LSB_BJOBS_CONSISTENT_EXIT_CODE="Y")
 
   submitJob = function(conf, reg, job.name, rscript, log.file, job.dir, resources) {
-    if (conf$debug) {
-      # if not temp, use jobs dir
-      outfile = sub("\\.R$", ".job", rscript)
-    } else {
-      outfile = tempfile()
-    }
-    brewWithStop(text=template, output=outfile)
+    outfile = cfBrewTemplate(conf, template, rscript, "job")
     # returns: "Job <128952> is submitted to default queue <s_amd>."
-    res = system3("bsub", stdin=outfile)
+    res = runOSCommandLinux("bsub", stdin=outfile, stop.on.exit.code=FALSE)
     # FIXME filled queues
     if (res$exit.code > 0L) {
-      msg = sprintf("bsub produced exit code %i; output %s", res$exit.code, res$output)
-      makeSubmitJobResult(status=101L, msg=msg)
+      cfHandleUnkownSubmitError("bsub", res$exit.code, res$output)
     } else {
-      # first number in string is batch.job.id
-      batch.job.id = strextract(res$output, "\\d+", global=FALSE)
+      # collapse output strings and first number in string is batch.job.id
+      batch.job.id = strextract(collapse(res$output, sep=" "), "\\d+")
       makeSubmitJobResult(status=0L, batch.job.id=batch.job.id)
     }
   }
 
   killJob = function(conf, reg, batch.job.id) {
-    tries = 0L
-    while(TRUE) {
-      # qdel sends SIGTERM, delay, SIGKILL
-      res = runOSCommandLinux("bkill", batch.job.id, stop.on.exit.code=FALSE)
-      if (res$exit.code == 0L) {
-        return()
-      } else {
-        tries = tries + 1L
-        if (tries > 3L) {
-          stopf("Really tried to kill job, but could not do it. batch job id is %s.\nMessage: %s",
-                batch.job.id, res$output)
-        }
-        Sys.sleep(1)
-      }
-    }
+    cfKillBatchJob("bkill", batch.job.id)
   }
 
   listJobs = function(conf, reg) {
@@ -74,11 +58,11 @@ makeClusterFunctionsLSF = function(template.file) {
       return(character(0L))
     if (res$exit.code > 0L)
       stopf("bjobs produced exit code %i; output %s", res$exit.code, res$output)
-    res = res$output
-    # drop first header line
-    res = res[-1L]
+
+    # drop first header line of output
+    out = tail(res$output, -1L)
     # first number in strings are batch.job.ids
-    strextract(res, "\\d+")
+    strextract(out, "\\d+")
   }
 
   makeClusterFunctions(name="LSF", submitJob=submitJob, killJob=killJob, listJobs=listJobs)

@@ -3,7 +3,7 @@
 \title{Submit jobs or chunks of jobs to batch system via cluster function.}
 \usage{
   submitJobs(reg, ids, resources = list(), wait,
-    max.retries = 10L, job.delay)
+    max.retries = 10L, job.delay = FALSE)
 }
 \arguments{
   \item{reg}{[\code{\link{Registry}}]\cr Registry.}
@@ -16,7 +16,10 @@
   system.}
 
   \item{resources}{[\code{list}]\cr Required resources for
-  all batch jobs.  Default is empty list.}
+  all batch jobs. The elements of this list (e.g. something
+  like \dQuote{walltime} or \dQuote{nodes} are defined by
+  your template job file.  Defaults can be specified in
+  your config file.  Default is empty list.}
 
   \item{wait}{[\code{function(retries)}]\cr Function that
   defines how many seconds should be waited in case of a
@@ -28,15 +31,18 @@
   (like filled queues). Each time \code{wait} is called to
   wait a certain number of seconds.  Default is 10 times.}
 
-  \item{job.delay}{[\code{function(n, i)}]\cr Function that
-  defines how many seconds a job should be delayed before
-  it starts.  This is an expert option and only necessary
-  to change, when you want submit extremely many jobs. We
-  then delay the jobs a bit to write the submit messages as
-  early as possible to avoid writer starvation.  \code{n}
-  is the number of jobs and \code{i} the number of the ith
-  job.  The default is no delay for less than 100 jobs and
-  otherwise \code{runif(1, 0.1*n, 0.2*n)}.}
+  \item{job.delay}{[\code{function(n, i)} or
+  \code{logical(1)}]\cr Function that defines how many
+  seconds a job should be delayed before it starts.  This
+  is an expert option and only necessary to change when you
+  want submit extremely many jobs. We then delay the jobs a
+  bit to write the submit messages as early as possible to
+  avoid writer starvation.  \code{n} is the number of jobs
+  and \code{i} the number of the ith job.  The default
+  function used with \code{job.delay} set to \code{TRUE} is
+  no delay for 100 jobs or less and otherwise
+  \code{runif(1, 0.1*n, 0.2*n)}.  If set to \code{FALSE}
+  (the default) delaying jobs is disabled.}
 }
 \value{
   Vector of submitted job ids.

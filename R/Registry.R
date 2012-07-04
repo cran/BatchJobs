@@ -19,6 +19,7 @@ makeRegistryInternal = function(id, file.dir, sharding,
     checkArg(seed, cl = "integer", len = 1L, lower = 1L, na.ok = FALSE)
   }
   checkArg(packages, cl = "character", na.ok = FALSE)
+  packages = union(packages, "BatchJobs")
   requirePackages(packages, stop=TRUE, suppress.warnings=TRUE)
 
   # make paths absolute to be sure. otherwise cfSSH wont work for example
@@ -28,6 +29,8 @@ makeRegistryInternal = function(id, file.dir, sharding,
   checkDir(job.dir, create=TRUE, check.empty=TRUE)
   fun.dir = getFunDir(file.dir)
   checkDir(fun.dir, create=TRUE, check.empty=TRUE)
+  resources.dir = getResourcesDir(file.dir)
+  checkDir(resources.dir, create=TRUE, check.empty=TRUE)
   checkDir(work.dir, check.posix=TRUE)
   work.dir = makePathAbsolute(work.dir)
 
@@ -92,7 +95,7 @@ makeRegistryInternal = function(id, file.dir, sharding,
 makeRegistry = function(id, file.dir, sharding=TRUE,
   work.dir, multiple.result.files = FALSE, seed, packages=character(0L)) {
   reg = makeRegistryInternal(id, file.dir, sharding, work.dir,
-                             multiple.result.files, seed, union(packages, "BatchJobs"))
+                             multiple.result.files, seed, packages)
   dbCreateJobStatusTable(reg)
   dbCreateJobDefTable(reg)
   saveRegistry(reg)
@@ -124,10 +127,38 @@ loadRegistry = function(file.dir, save=FALSE) {
   fn = getRegistryFilePath(file.dir)
   message("Loading registry: ", fn)
   reg = load2(fn, "reg")
+  
+  # from here on (this version number and smaller) we need to do updates
+  bj.version.upd = package_version("1.0.527")
+
+  # Determine BJ package version
+  # Should always be present for version 1.0.527 and higher
+  if ("BatchJobs" %nin% names(reg$packages))
+    bj.version.reg = package_version("1.0.527")
+  else
+    bj.version.reg = reg$packages$BatchJobs$version
+
+  update = bj.version.reg <= bj.version.upd
+  if (update) {
+    message("Updating registry and DB to newer version. Will be saved now.")
+    # updates for newer versions
+    # create new resources dir
+    resources.dir = getResourcesDir(file.dir)
+    checkDir(resources.dir, create=TRUE, check.empty=TRUE)
+    query = sprintf("ALTER TABLE %s_job_status ADD COLUMN resources_timestamp INTEGER", reg$id)
+    dbDoQuery(reg, query, flags="rwc")
+    # save dummy resources
+    query = sprintf("UPDATE %s_job_status SET resources_timestamp=0 WHERE submitted IS NOT NULL", reg$id)
+    dbDoQuery(reg, query, flags="rwc")
+    saveResources(reg, resources=list(), timestamp=0L)
+    reg$packages$BatchJobs$version = packageVersion("BatchJobs")
+  }
+
   if(save) {
     reg$file.dir = makePathAbsolute(file.dir)
-    saveRegistry(reg)
   }
+  if (save || update)
+    saveRegistry(reg)
   reg
 }
 

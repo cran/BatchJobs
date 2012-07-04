@@ -95,30 +95,42 @@ isOnSlave = function() {
   getOption("BatchJobs.on.slave", default=FALSE)
 }
 
-setOnSlave = function(x) {
+setOnSlave = function(x, resources.path=as.character(NA)) {
   checkArg(x, "logical", len=1L, na.ok=FALSE)
+  checkArg(resources.path, "character", len=1L, na.ok=TRUE)
   options(BatchJobs.on.slave=x)
+  options(BatchJobs.resources.path=resources.path)
 }
 
 getOperatingSystem = function() {
   Sys.info()["sysname"]
 }
 
-
-strextract = function(string, pattern, global=TRUE) {
-  if (global)
-    regmatches(string, gregexpr(pattern, string))[[1L]]
-  else
-    regmatches(string, regexpr(pattern, string))[[1L]]
-
+# Extract a FIRST match for a pattern from a vector of strings.
+# @param x [\code{character}]\cr
+#   Vector of strings.
+# @param x [\code{character(1)}]\cr
+#   Regexp pattern. Just 1.
+# @return [\code{character}]. Same length as x.
+#   Returns NA if pattern was not found.
+strextract = function(x, pattern) {
+  if (length(x) == 0)
+    return(character(0))
+  starts = regexpr(pattern, x)
+  lens = attr(starts, "match.length")
+  stops = starts + lens - 1
+  mapply(function(x, start, stop) {
+    if (start == -1)
+      as.character(NA)
+    else
+      substr(x, start, stop)
+  }, x, starts, stops, USE.NAMES=FALSE)
 }
 
-brewWithStop = function(...) {
-  pf = parent.frame()
-  old = getOption("show.error.messages")
-  options(show.error.messages=FALSE)
-  z = suppressAll(brew(..., envir=pf))
-  options(show.error.messages=old)
-  if (is.error(z))
-    stop(z)
+trim = function(x, ltrim=TRUE, rtrim=TRUE) {
+  if (ltrim)
+    x = sub("^[[:space:]]+", "", x)
+  if (rtrim)
+    x = sub("[[:space:]]+$", "", x)
+  return(x)
 }

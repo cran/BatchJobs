@@ -22,12 +22,15 @@
   the cluster (this is usually the case).
 }
 \details{
-  The template file can use any of the resources defined
-  for the job by accessing the appropriate element of the
-  \code{resources} list. It is the template file's job to
-  choose a queue for the job and add any desired resource
-  allocations. A simple example is provided here
+  The template file can access all arguments passed to the
+  \code{submitJob} function, see here
+  \code{\link{ClusterFunctions}}. It is the template file's
+  job to choose a queue for the job and handle the desired
+  resource allocations. A simple example is provided here
   \url{http://code.google.com/p/batchjobs/source/browse/trunk/BatchJobs/examples/cfLSF/simple.tmpl}
   in the package repository on its homepage.
+
+  The following variables are accessible in the template
+  file: a) all argu
 }
 

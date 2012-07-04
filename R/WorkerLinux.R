@@ -1,13 +1,13 @@
 # ******************** Constructors ********************
 
 # Construct a remote worker for a Linux machine via SSH.
-makeWorkerRemoteLinux = function(nodename, rhome, script, ncpus, max.jobs, max.load) {
-  makeWorker(ssh=TRUE, nodename, rhome, script, ncpus, max.jobs, max.load, c("WorkerRemoteLinux", "WorkerLinux"))
+makeWorkerRemoteLinux = function(nodename, rhome, r.options, script, ncpus, max.jobs, max.load) {
+  makeWorker(ssh=TRUE, nodename, rhome, r.options, script, ncpus, max.jobs, max.load, c("WorkerRemoteLinux", "WorkerLinux"))
 }
 
 # Construct a worker for local Linux machine to spawn parallel jobs.
-makeWorkerLocalLinux = function(script, ncpus, max.jobs, max.load) {
-  makeWorker(ssh=FALSE, "localhost", R.home(), script, ncpus, max.jobs, max.load, c("WorkerLocalLinux", "WorkerLinux"))
+makeWorkerLocalLinux = function(r.options, script, ncpus, max.jobs, max.load) {
+  makeWorker(ssh=FALSE, "localhost", R.home(), r.options, script, ncpus, max.jobs, max.load, c("WorkerLocalLinux", "WorkerLinux"))
 }
 
 # ******************** Interface implementation ********************
@@ -27,7 +27,7 @@ getWorkerStatus.WorkerLinux = function(worker, file.dir) {
 
 #' @S3method startWorkerJob WorkerLinux
 startWorkerJob.WorkerLinux = function(worker, rfile, outfile) {
-  runWorkerCommand(worker, "start-job", c(worker$rhome, rfile, outfile))
+  runWorkerCommand(worker, "start-job", c(worker$rhome, worker$r.options, rfile, outfile))
 }
 
 #' @S3method killWorkerJob WorkerLinux
@@ -49,6 +49,9 @@ listWorkerJobs.WorkerLinux = function(worker, file.dir) {
 # @param args [\code{character}]
 #   System command arguments.
 #   Default is \code{character(0)}.
+# @param stdin [\code{character(1)}]
+#   See \code{\link{system3}}.
+#   Default is \dQuote{}.
 # @param stop.on.exit.code [\code{character}]
 #   See \code{\link{system3}}.
 #   Default is \code{TRUE}.
@@ -58,7 +61,7 @@ listWorkerJobs.WorkerLinux = function(worker, file.dir) {
 # @param nodename [\code{character(1)}]
 #   Nodename for SSH.
 # @return See \code{\link{system3}}.
-runOSCommandLinux = function(cmd, args=character(0L), stop.on.exit.code=TRUE, ssh=FALSE, nodename) {
+runOSCommandLinux = function(cmd, args=character(0L), stdin="", stop.on.exit.code=TRUE, ssh=FALSE, nodename) {
   conf = getBatchJobsConf()
   if (ssh) {
     sys.cmd = "ssh"
@@ -70,13 +73,11 @@ runOSCommandLinux = function(cmd, args=character(0L), stop.on.exit.code=TRUE, ss
   }
   if (conf$debug) {
     catf("OS cmd: %s %s", sys.cmd, collapse(sys.args, " "))
-    res = try(system3(sys.cmd, sys.args, stdout=TRUE, stderr=TRUE, wait=TRUE, stop.on.exit.code=stop.on.exit.code))
-  } else {
-    res = system3(sys.cmd, sys.args, stdout=TRUE, stderr=TRUE, wait=TRUE, stop.on.exit.code=stop.on.exit.code)
-  }
-  if (conf$debug) {
+    res = try(system3(sys.cmd, sys.args, stdin=stdin, stdout=TRUE, stderr=TRUE, wait=TRUE, stop.on.exit.code=stop.on.exit.code))
     catf("OS result:")
     print(res)
+  } else {
+    res = system3(sys.cmd, sys.args, stdin=stdin, stdout=TRUE, stderr=TRUE, wait=TRUE, stop.on.exit.code=stop.on.exit.code)
   }
   if(is.error(res))
     stopf("Error in runLinuxOSCommand: %s (cmd: %s || args: %s)", as.character(res), sys.cmd, collapse(sys.args))
@@ -86,20 +87,25 @@ runOSCommandLinux = function(cmd, args=character(0L), stop.on.exit.code=TRUE, ss
 # Find helper script on a Linux machine in package dir.
 # @param rhome [\code{character(1)}]
 #   RHOME dir.
+# @param r.options [\code{character}]
+#   Options for R and Rscript, one option per element of the vector, 
+#   a la "--vanilla".
 # @param ssh [\code{logical(1)}]
 #   Use SSH?
 #   Default is \code{FALSE}.
 # @param nodename [\code{character(1)}]
 #   Nodename for SSH.
 # @return [\code{character(1)}]. Path of script.
-findHelperScriptLinux = function(rhome, ssh=FALSE, nodename) {
+findHelperScriptLinux = function(rhome, r.options, ssh=FALSE, nodename) {
   # i think we dont need to quote anything here, because system2 uses shQuote
   if (rhome == "")
     rscript = "Rscript"
   else
     rscript = file.path(rhome, "bin", "Rscript")
   minus.e = "-e \"message(normalizePath(system.file(\\\"bin/linux-helper\\\", package=\\\"BatchJobs\\\")))\""
-  runOSCommandLinux(rscript, minus.e, ssh=ssh, nodename=nodename)$output
+  args = c(r.options, minus.e)
+  # only take the last line, if stuff is printed by Rscript before our message
+  tail(runOSCommandLinux(rscript, args, ssh=ssh, nodename=nodename)$output, 1L)
 }
 
 # Perform a batch helper command on a Linux machine.
