@@ -1,13 +1,13 @@
 # ******************** Constructors ********************
 
 # Construct a remote worker for a Linux machine via SSH.
-makeWorkerRemoteLinux = function(nodename, rhome, r.options, script, ncpus, max.jobs, max.load) {
-  makeWorker(ssh=TRUE, nodename, rhome, r.options, script, ncpus, max.jobs, max.load, c("WorkerRemoteLinux", "WorkerLinux"))
+makeWorkerRemoteLinux = function(nodename, rhome, r.options, script, ncpus, max.jobs, max.load, nice) {
+  makeWorker(ssh=TRUE, nodename, rhome, r.options, script, ncpus, max.jobs, max.load, nice, c("WorkerRemoteLinux", "WorkerLinux"))
 }
 
 # Construct a worker for local Linux machine to spawn parallel jobs.
-makeWorkerLocalLinux = function(r.options, script, ncpus, max.jobs, max.load) {
-  makeWorker(ssh=FALSE, "localhost", R.home(), r.options, script, ncpus, max.jobs, max.load, c("WorkerLocalLinux", "WorkerLinux"))
+makeWorkerLocalLinux = function(r.options, script, ncpus, max.jobs, max.load, nice) {
+  makeWorker(ssh=FALSE, "localhost", R.home(), r.options, script, ncpus, max.jobs, max.load, nice, c("WorkerLocalLinux", "WorkerLinux"))
 }
 
 # ******************** Interface implementation ********************
@@ -20,14 +20,13 @@ getWorkerNumberOfCPUs.WorkerLinux = function(worker) {
 #' @S3method getWorkerStatus WorkerLinux
 getWorkerStatus.WorkerLinux = function(worker, file.dir) {
   res = runWorkerCommand(worker, "status", file.dir)
-  res = as.list(as.numeric(strsplit(res, " +")[[1L]]))
-  names(res) = c("load", "n.rprocs", "n.rprocs.50", "n.jobs")
-  return(res)
+  setNames(as.list(as.numeric(strsplit(res, " +")[[1L]])),
+           c("load", "n.rprocs", "n.rprocs.50", "n.jobs"))
 }
 
 #' @S3method startWorkerJob WorkerLinux
 startWorkerJob.WorkerLinux = function(worker, rfile, outfile) {
-  runWorkerCommand(worker, "start-job", c(worker$rhome, worker$r.options, rfile, outfile))
+  runWorkerCommand(worker, "start-job", c(worker$rhome, worker$nice, worker$r.options, rfile, outfile))
 }
 
 #' @S3method killWorkerJob WorkerLinux
@@ -88,7 +87,7 @@ runOSCommandLinux = function(cmd, args=character(0L), stdin="", stop.on.exit.cod
 # @param rhome [\code{character(1)}]
 #   RHOME dir.
 # @param r.options [\code{character}]
-#   Options for R and Rscript, one option per element of the vector, 
+#   Options for R and Rscript, one option per element of the vector,
 #   a la "--vanilla".
 # @param ssh [\code{logical(1)}]
 #   Use SSH?

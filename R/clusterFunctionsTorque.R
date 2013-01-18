@@ -8,20 +8,25 @@
 #' appropriate privileges to submit, delete and list jobs on the
 #' cluster (this is usually the case).
 #'
-#' The template file can access all arguments passed to the 
+#' The template file can access all arguments passed to the
 #' \code{submitJob} function, see here \code{\link{ClusterFunctions}}.
 #' It is the template file's job to choose a queue for the job
-#' and handle the desired resource allocations. 
+#' and handle the desired resource allocations.
 #' A simple example is provided here
 #' \url{http://code.google.com/p/batchjobs/source/browse/trunk/BatchJobs/examples/cfTorque/simple.tmpl}
 #' and a more complex one here
 #' \url{http://code.google.com/p/batchjobs/source/browse/trunk/BatchJobs/examples/cfTorque/lido.tmpl}
 #' in the package repository on its homepage.
 #'
-#' @param template.file [\code{character(1)}]\cr
 #'   Path to a brew template file that is used for the PBS job file.
+#' @param template.file [\code{character(1)}]\cr
 #' @return [\code{\link{ClusterFunctions}}].
+#' @examples
+#' \dontrun{
+#' cluster.functions = makeClusterFunctionsTorque("~/mytemplate.tmpl")
+#' }
 #' @export
+#' @seealso \link{ClusterFunctions}
 makeClusterFunctionsTorque = function(template.file) {
   template = cfReadBrewTemplate(template.file)
 

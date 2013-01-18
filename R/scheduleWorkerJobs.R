@@ -18,7 +18,7 @@ getWorkerSchedulerStatus = function(worker) {
 
 # update status of worker IN PLACE
 updateWorker = function(worker, file.dir, tdiff) {
-  time = as.integer(Sys.time())
+  time = now()
   if (worker$available == "A" || time - worker$last.update >= tdiff) {
     worker$last.update = time
     worker$status = getWorkerStatus(worker, file.dir)
@@ -27,7 +27,10 @@ updateWorker = function(worker, file.dir, tdiff) {
 }
 
 # find worker via isBusyWorker and update workers while looking
+# workers with a low load are more likely to be selected when there are
+# multiple workers available
 findWorker = function(workers, file.dir, tdiff) {
   lapply(workers, updateWorker, file.dir=file.dir, tdiff=tdiff)
-  Find(function(w) w$available=="A", workers, nomatch=NULL)
+  rload = vapply(workers, function(w) w$status$load / w$ncpus, numeric(1L))
+  Find(function(w) w$available=="A", sample(workers, prob = 1 / (rload + 0.1)), nomatch=NULL)
 }

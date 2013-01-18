@@ -4,7 +4,7 @@
 \title{Create a ClusterFuntions object.}
 \usage{
   makeClusterFunctions(name, submitJob, killJob, listJobs,
-    class, ...)
+    class = NULL, ...)
 }
 \arguments{
   \item{name}{[\code{character(1)}]\cr Name of cluster
@@ -54,7 +54,7 @@
   \item{class}{[\code{character(1)}]\cr Optional class name
   for cluster functions object.  Useful to provide a nice
   print method which might show additional information
-  about the workers.}
+  about the workers.  Default is \code{NULL}.}
 
   \item{...}{[\code{any}]\cr Currently ignored.}
 }

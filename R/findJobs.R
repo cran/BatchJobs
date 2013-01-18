@@ -18,7 +18,8 @@
 #' batchExpandGrid(reg, f, x=1:2, y=1:3)
 #' findJobs(reg, pars=(y > 2))
 findJobs = function(reg, ids, pars) {
-  checkArg(reg, cl="Registry")
+  checkRegistry(reg)
+  syncRegistry(reg)
   if (!missing(ids))
     ids = checkIds(reg, ids)
   jobs = getJobs(reg, ids, check.ids=FALSE)
@@ -30,8 +31,7 @@ findJobs = function(reg, ids, pars) {
     }
     j = which(is.na(ns) | ns == "")
     ns[j] = paste(".arg", seq_along(j), sep="")
-    names(pars) = ns
-    pars
+    setNames(pars, ns)
   }
 
   ind = vapply(jobs, function(job, pars, ee) eval(pars, rename(job$pars), ee),

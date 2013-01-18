@@ -15,7 +15,7 @@
 #' @param fun [\code{function}]\cr
 #'   For \code{reduceResults}, a function \code{function(aggr, job, res, ...)} to reduce things,
 #'   for all others, a function \code{function(job, res, ...)} to select stuff.
-#'   Here, \code{job} is the current job descriptor, \code{result} is the current result object and
+#'   Here, \code{job} is the current job descriptor (see \code{\link{Job}}), \code{result} is the current result object and
 #'   \code{aggr} are the so far aggregated results. When using \code{reduceResults},
 #'   your function should add the stuff you want to have from \code{job} and
 #'   \code{result} to \code{aggr} and return that.
@@ -33,7 +33,7 @@
 #'   Should the return values be named?
 #'   Default is \code{TRUE}.
 #' @param rows [\code{logical(1)}]\cr
-#'   Should the selected vectors be usedd as rows (or columns) in the result matrix?
+#'   Should the selected vectors be used as rows (or columns) in the result matrix?
 #'   Default is \code{TRUE}.
 #' @param strings.as.factors [\code{logical(1)}]
 #'   Should all character columns in result be converted to factors?
@@ -73,14 +73,15 @@
 #' # reduce results to a sum
 #' reduceResults(reg, fun=function(aggr, job, res) aggr+res$a, init=0)
 reduceResults = function(reg, ids, part=NA_character_, fun, init, ...) {
-  checkArg(reg, "Registry")
-  done = dbGetDone(reg)
+  checkRegistry(reg)
+  syncRegistry(reg)
   if (missing(ids)) {
-    ids = done
+    ids = dbFindDone(reg)
   } else {
     ids = checkIds(reg, ids)
-    if (any(ids %nin% done))
-      stopf("No results available for jobs with ids: %s", collapse(ids[ids %nin% done]))
+    ndone = dbFindDone(reg, ids, negate=TRUE)
+    if (length(ndone) > 0L)
+      stopf("No results available for jobs with ids: %s", collapse(ndone))
   }
   checkArg(fun, formals=c("aggr", "job", "res"))
 
@@ -98,7 +99,7 @@ reduceResults = function(reg, ids, part=NA_character_, fun, init, ...) {
   tryCatch({
     if (missing(init)) {
       # fetch first result as init
-      aggr = loadResult(reg, ids[1L], part, check.id=FALSE)
+      aggr = getResult(reg, ids[1L], part)
       ids = tail(ids, -1L)
       bar$inc(1L)
     } else {
@@ -112,7 +113,7 @@ reduceResults = function(reg, ids, part=NA_character_, fun, init, ...) {
       # is not accessed, getJob will not trigger a database query
       aggr = fun(aggr,
                  job = getJob(reg, id, check.id=FALSE),
-                 res = loadResult(reg, id, part, check.id=FALSE),
+                 res = getResult(reg, id, part),
                  ...)
       bar$inc(1L)
     }
@@ -121,9 +122,10 @@ reduceResults = function(reg, ids, part=NA_character_, fun, init, ...) {
 }
 
 reduceResultsReturnVal = function(reg, ids, part, fun, wrap, combine, use.names, name.fun, ..., init, empty) {
-  checkArg(reg, "Registry")
+  checkRegistry(reg)
+  syncRegistry(reg)
   if (missing(ids))
-    ids = dbGetDone(reg)
+    ids = dbFindDone(reg)
   if (missing(fun)){
     fun = function(job, res) res
   } else {
@@ -135,10 +137,10 @@ reduceResultsReturnVal = function(reg, ids, part, fun, wrap, combine, use.names,
     message("Reducing ", n, " results...")
     return(empty)
   }
-  fun2 = function(aggr, job, res) combine(aggr, wrap(fun(job, res)))
+  fun2 = function(aggr, job, res, ...) combine(aggr, wrap(fun(job, res, ...)))
   res = reduceResults(reg, ids, part, fun2, init, ...)
   if (use.names)
-    res = name.fun(res, ids, fun(getJob(reg, ids[1L]), loadResult(reg, ids[1L], check.id=FALSE)))
+    res = name.fun(res, ids, fun(getJob(reg, ids[1L]), getResult(reg, ids[1L], part)))
   return(res)
 }
 

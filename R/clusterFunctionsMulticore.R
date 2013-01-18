@@ -10,8 +10,11 @@
 #'   Load average (of the last 5 min) at which the worker is considered occupied,
 #'   so that no job can be submitted.
 #'   Default is \code{ncpus-1}.
+#' @param nice [\code{integer(1)}]\cr
+#'   Process priority to run R with set via nice. Integers between -20 and 19 are allowed.
+#'   If missing, processes are not nice'd and the system default applies (usually 0).
 #' @param r.options [\code{character}]
-#'   Options for R and Rscript, one option per element of the vector, 
+#'   Options for R and Rscript, one option per element of the vector,
 #'   a la \dQuote{--vanilla}.
 #'   Default is \code{c("--no-save", "--no-restore", "--no-init-file", "--no-site-file")}.
 #' @param script [\code{character(1)}]\cr
@@ -24,11 +27,16 @@
 #'   \url{http://code.google.com/p/batchjobs/source/browse/trunk/BatchJobs/skel/inst/bin/linux-helper}
 #'   Default means to take it from package directory.
 #' @return [\code{\link{ClusterFunctions}}].
+#' @examples
+#' \dontrun{
+#' cluster.functions = makeClusterFunctionsMulticore(4)
+#' }
 #' @export
-makeClusterFunctionsMulticore = function(ncpus, max.jobs, max.load, 
+#' @seealso \link{ClusterFunctions}
+makeClusterFunctionsMulticore = function(ncpus, max.jobs, max.load, nice,
   r.options=c("--no-save", "--no-restore", "--no-init-file", "--no-site-file"), script) {
-  
-  worker = makeWorkerLocalLinux(r.options, script, ncpus, max.jobs, max.load)
+
+  worker = makeWorkerLocalLinux(r.options, script, ncpus, max.jobs, max.load, nice)
   workers = list(localhost=worker)
 
   submitJob = function(conf, reg, job.name, rscript, log.file, job.dir, resources) {

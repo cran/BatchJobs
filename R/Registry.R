@@ -2,7 +2,7 @@ makeRegistryInternal = function(id, file.dir, sharding,
   work.dir, multiple.result.files, seed, packages) {
   cur.dir = getwd()
   checkArg(id, cl = "character", len = 1L, na.ok = FALSE)
-  checkIdValid(id)
+  checkIdValid(id, allow.minus=FALSE)
   if (missing(file.dir))
     file.dir = file.path(cur.dir, paste(id, "files", sep="-"))
   checkArg(file.dir, cl = "character", len = 1L, na.ok = FALSE)
@@ -29,14 +29,14 @@ makeRegistryInternal = function(id, file.dir, sharding,
   checkDir(job.dir, create=TRUE, check.empty=TRUE)
   fun.dir = getFunDir(file.dir)
   checkDir(fun.dir, create=TRUE, check.empty=TRUE)
-  resources.dir = getResourcesDir(file.dir)
-  checkDir(resources.dir, create=TRUE, check.empty=TRUE)
+  checkDir(getResourcesDir(file.dir), create=TRUE, check.empty=TRUE)
+  checkDir(getPendingDir(file.dir), create=TRUE, check.empty=TRUE)
   checkDir(work.dir, check.posix=TRUE)
   work.dir = makePathAbsolute(work.dir)
 
-  packages = structure(lapply(packages, function(pkg) list(version = packageVersion(pkg))),
-                       names = packages)
-  structure(list(
+  packages = setNames(lapply(packages, function(pkg) list(version = packageVersion(pkg))), packages)
+
+  setClasses(list(
     id = id,
     version = R.version,
     RNGkind = RNGkind(),
@@ -48,7 +48,7 @@ makeRegistryInternal = function(id, file.dir, sharding,
     work.dir = work.dir,
     multiple.result.files = multiple.result.files,
     packages = packages[order(names(packages))]
-  ), class = "Registry")
+  ), "Registry")
 }
 
 
@@ -116,50 +116,34 @@ print.Registry = function(x, ...) {
 #' Load a previously saved registry.
 #' @param file.dir [\code{character(1)}]\cr
 #'   Location of the file.dir to load the registry from.
-#' @param save [\code{logical(1)}]\cr
-#'   Set \code{file.dir} in the registry and save.
-#'   Useful if you moved the file dir, because you wanted to continue
-#'   working somewhere else.
-#'   Default is \code{FALSE}.
+#' @param work.dir [\code{character(1)}]\cr
+#'   Location of the work. Unchanged if missing.
+#'   Note that the registry is not safed unless you set \code{save} to \code{TRUE}!
 #' @return [\code{\link{Registry}}].
 #' @export
-loadRegistry = function(file.dir, save=FALSE) {
+loadRegistry = function(file.dir, work.dir) {
   fn = getRegistryFilePath(file.dir)
+  if (!file.exists(fn))
+    stopf("No registry found in '%s'", file.dir)
   message("Loading registry: ", fn)
   reg = load2(fn, "reg")
-  
-  # from here on (this version number and smaller) we need to do updates
-  bj.version.upd = package_version("1.0.527")
 
-  # Determine BJ package version
-  # Should always be present for version 1.0.527 and higher
-  if ("BatchJobs" %nin% names(reg$packages))
-    bj.version.reg = package_version("1.0.527")
-  else
-    bj.version.reg = reg$packages$BatchJobs$version
+  requirePackages(names(reg$packages), why=sprintf("registry %s", reg$id))
 
-  update = bj.version.reg <= bj.version.upd
-  if (update) {
-    message("Updating registry and DB to newer version. Will be saved now.")
-    # updates for newer versions
-    # create new resources dir
-    resources.dir = getResourcesDir(file.dir)
-    checkDir(resources.dir, create=TRUE, check.empty=TRUE)
-    query = sprintf("ALTER TABLE %s_job_status ADD COLUMN resources_timestamp INTEGER", reg$id)
-    dbDoQuery(reg, query, flags="rwc")
-    # save dummy resources
-    query = sprintf("UPDATE %s_job_status SET resources_timestamp=0 WHERE submitted IS NOT NULL", reg$id)
-    dbDoQuery(reg, query, flags="rwc")
-    saveResources(reg, resources=list(), timestamp=0L)
-    reg$packages$BatchJobs$version = packageVersion("BatchJobs")
+  if (!isOnSlave()) {
+    # FIXME check that no jobs are running, if possible, before updating
+    adjusted = adjustRegistryPaths(reg, file.dir, work.dir)
+    if (!isFALSE(adjusted))
+      reg = adjusted
+
+    updated = updateRegistry(reg)
+    if (!isFALSE(updated))
+      reg = updated
+
+    if (!isFALSE(adjusted) || !isFALSE(updated))
+      saveRegistry(reg)
   }
-
-  if(save) {
-    reg$file.dir = makePathAbsolute(file.dir)
-  }
-  if (save || update)
-    saveRegistry(reg)
-  reg
+  return(reg)
 }
 
 saveRegistry = function(reg) {
@@ -167,24 +151,3 @@ saveRegistry = function(reg) {
   message("Saving registry: ", fn)
   save(file=fn, reg)
 }
-
-#' Get number of jobs in registry.
-#' @param reg [\code{\link{Registry}}]\cr
-#'   Registry.
-#' @return [\code{integer(1)}].
-#' @export
-getJobNr = function(reg) {
-  checkArg(reg, "Registry")
-  dbGetJobCount(reg)
-}
-
-#' Get ids of jobs in registry.
-#' @param reg [\code{\link{Registry}}]\cr
-#'   Registry.
-#' @return [\code{character}].
-#' @export
-getJobIds = function(reg) {
-  checkArg(reg, "Registry")
-  dbGetJobIds(reg)
-}
-

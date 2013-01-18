@@ -85,16 +85,21 @@ dbAddData = function(reg, tab, data) {
   as.integer(dbGetQuery(con, "SELECT total_changes()"))
 }
 
-dbSelectWithIds = function(reg, query, ids, where=TRUE, limit=-1L) {
+dbSelectWithIds = function(reg, query, ids, where=TRUE, group.by, limit, reorder=TRUE) {
   if(!missing(ids))
     query = sprintf("%s %s job_id IN (%s)", query, ifelse(where, "WHERE", "AND"), collapse(ids))
-  query = sprintf("%s LIMIT %i", query, limit)
-  res = dbDoQuery(reg, query, flags="ro")
-  if(!missing(ids))
-    # order result same as ids
-    res[na.omit(match(ids, res$job_id)),, drop=FALSE]
-  else
-    res
+  if(!missing(group.by))
+    query = sprintf("%s GROUP BY %s", query, collapse(group.by))
+  if(!missing(limit))
+    query = sprintf("%s LIMIT %i", query, limit)
+
+  res = dbDoQuery(reg, query)
+  if(missing(ids) || !reorder)
+    return(res)
+  # FIXME remove check on release
+  if ("job_id" %nin% names(res))
+    stop("Internal error: job_id not found")
+  return(res[na.omit(match(ids, res$job_id)),, drop=FALSE])
 }
 
 ############################################
@@ -133,7 +138,6 @@ dbCreateJobStatusTable = function(reg, extra.cols="", constraints="") {
   return(invisible(TRUE))
 }
 
-
 dbCreateExpandedJobsView = function(reg) {
   query = sprintf("CREATE VIEW %1$s_expanded_jobs AS SELECT * FROM %1$s_job_status LEFT JOIN %1$s_job_def USING(job_def_id)", reg$id)
   dbDoQuery(reg, query, flags="rw")
@@ -167,31 +171,19 @@ dbGetJobs.Registry = function(reg, ids) {
   })
 }
 
-dbGetExpandedJobsTable = function(reg, ids, columns) {
-  if (missing(columns))
-    columns2 = "*"
-  else
-    columns2 = collapse(columns)
-
-  query = sprintf("SELECT %s FROM %s_expanded_jobs", columns2, reg$id)
+dbGetExpandedJobsTable = function(reg, ids, cols="*") {
+  # Note: job_id must be in cols!
+  query = sprintf("SELECT %s FROM %s_expanded_jobs", collapse(cols), reg$id)
   tab = dbSelectWithIds(reg, query, ids)
-  if (missing(columns) || "job_id" %in% columns)
-    rownames(tab) = tab$job_id
-  tab
+  setRowNames(tab, tab$job_id)
 }
 
-dbGetJobStatusTable = function(reg, ids, convert.dates=TRUE) {
-  query = sprintf("SELECT * FROM %s_job_status", reg$id)
+dbGetJobStatusTable = function(reg, ids, cols="*") {
+  # Note: job_id must be in cols!
+  query = sprintf("SELECT %s FROM %s_job_status", collapse(cols), reg$id)
   tab = dbSelectWithIds(reg, query, ids)
-  if (convert.dates) {
-    tab$submitted = dbConvertNumericToPOSIXct(tab$submitted)
-    tab$started = dbConvertNumericToPOSIXct(tab$started)
-    tab$done = dbConvertNumericToPOSIXct(tab$done)
-  }
-  rownames(tab) = tab$job_id
-  tab
+  setRowNames(tab, tab$job_id)
 }
-
 
 dbGetJobCount = function(reg) {
   query = sprintf("SELECT COUNT(*) AS count FROM %s_job_status", reg$id)
@@ -208,6 +200,12 @@ dbGetJobIds = function(reg) {
   dbDoQuery(reg, query)$job_id
 }
 
+dbCheckJobIds = function(reg, ids) {
+  not.found = setdiff(ids, BatchJobs:::dbGetJobIds(reg))
+  if (length(not.found) > 0L)
+    stopf("Ids not present in registry: %s", collapse(not.found))
+}
+
 dbGetJobIdsIfAllDone = function(reg) {
   query = sprintf("SELECT job_id, done FROM %s_job_status", reg$id)
   res = dbDoQuery(reg, query)
@@ -222,118 +220,101 @@ dbGetLastAddedIds = function(reg, tab, id.col, n) {
   rev(dbDoQuery(reg, query)$id_col)
 }
 
-dbGetDone = function(reg, ids) {
-  query = sprintf("SELECT job_id FROM %s_job_status WHERE done IS NOT NULL", reg$id)
+dbFindDone = function(reg, ids, negate=FALSE) {
+  query = sprintf("SELECT job_id FROM %s_job_status WHERE %s (done IS NOT NULL)", reg$id, if(negate) "NOT" else "")
   dbSelectWithIds(reg, query, ids, where=FALSE)$job_id
 }
 
-dbGetMissingResults = function(reg, ids) {
-  query = sprintf("SELECT job_id FROM %s_job_status WHERE done IS NULL", reg$id)
-  dbSelectWithIds(reg, query, ids, where=FALSE)$job_id
-}
-
-dbGetErrors = function(reg, ids) {
-  query = sprintf("SELECT job_id FROM %s_job_status WHERE error IS NOT NULL", reg$id)
+dbFindErrors = function(reg, ids, negate=FALSE) {
+  query = sprintf("SELECT job_id FROM %s_job_status WHERE %s (error IS NOT NULL)", reg$id, if(negate) "NOT" else "")
   dbSelectWithIds(reg, query, where=FALSE)$job_id
 }
 
-dbGetSubmitted = function(reg, ids) {
-  query = sprintf("SELECT job_id FROM %s_job_status WHERE submitted IS NOT NULL", reg$id)
+dbFindTerminated = function(reg, ids, negate=FALSE) {
+  query = sprintf("SELECT job_id FROM %s_job_status WHERE %s (done IS NOT NULL OR error IS NOT NULL)", reg$id, if(negate) "NOT" else "")
   dbSelectWithIds(reg, query, ids, where=FALSE)$job_id
 }
 
-dbGetNotSubmitted = function(reg, ids) {
-  query = sprintf("SELECT job_id FROM %s_job_status WHERE submitted IS NULL", reg$id)
+dbFindSubmitted = function(reg, ids, negate=FALSE) {
+  query = sprintf("SELECT job_id FROM %s_job_status WHERE %s (submitted IS NOT NULL)", reg$id, if (negate) "NOT" else "")
   dbSelectWithIds(reg, query, ids, where=FALSE)$job_id
 }
 
-dbGetStarted = function(reg, ids) {
-  query = sprintf("SELECT job_id FROM %s_job_status WHERE started IS NOT NULL", reg$id)
+dbFindStarted = function(reg, ids, negate=FALSE) {
+  query = sprintf("SELECT job_id FROM %s_job_status WHERE %s (started IS NOT NULL)", reg$id, if (negate) "NOT" else "")
   dbSelectWithIds(reg, query, ids, where=FALSE)$job_id
 }
 
-dbGetJobIdsFromBatchJobIds = function(reg, batch.job.ids, ids, clause="") {
-  query = sprintf("SELECT job_id FROM %s_job_status WHERE batch_job_id IN ('%s')",
-                  reg$id, collapse(batch.job.ids, sep="','"), clause)
-  if (clause != "")
-    query = sprintf("%s AND %s", query, clause)
+dbFindOnSystem = function(reg, ids, negate=FALSE, batch.ids) {
+  if (missing(batch.ids))
+    batch.ids = getBatchIds(reg, "Cannot find jobs on system")
+
+  query = sprintf("SELECT job_id FROM %s_job_status WHERE %s (batch_job_id IN ('%s'))",
+                  reg$id, if (negate) "NOT" else "", collapse(batch.ids, sep="','"))
   dbSelectWithIds(reg, query, ids, where=FALSE)$job_id
 }
 
-dbGetExpiredJobs = function(reg, batch.job.ids, ids) {
+dbFindRunning = function(reg, ids, negate=FALSE, batch.ids) {
+  if (missing(batch.ids))
+    batch.ids = getBatchIds(reg, "Cannot find jobs on system")
+
+  query = sprintf("SELECT job_id FROM %s_job_status WHERE %s (batch_job_id IN ('%s') AND started IS NOT NULL AND done IS NULL AND error IS NULL)",
+                  reg$id, if (negate) "NOT" else "", collapse(batch.ids, sep="','"))
+  dbSelectWithIds(reg, query, ids, where=FALSE)$job_id
+}
+
+dbFindExpiredJobs = function(reg, ids, negate=FALSE, batch.ids) {
+  if (missing(batch.ids))
+    batch.ids = getBatchIds(reg, "Cannot find jobs on system")
   # started, not terminated, not running
-  query = sprintf("SELECT job_id FROM %s_job_status WHERE started IS NOT NULL AND done IS NULL AND error is NULL AND
-      batch_job_id NOT IN ('%s')", reg$id, collapse(batch.job.ids, sep="','"))
+  query = sprintf("SELECT job_id FROM %s_job_status WHERE %s (started IS NOT NULL AND done IS NULL AND error is NULL AND
+                  batch_job_id NOT IN ('%s'))", reg$id, if (negate) "NOT" else "", collapse(batch.ids, sep="','"))
   dbSelectWithIds(reg, query, ids, where=FALSE)$job_id
 }
 
-dbGetSubmittedAndNotTerminatedJobs = function(reg, ids) {
-  # we cannot check if job is running in DB, do this later
-  query = sprintf("SELECT job_id FROM %s_job_status WHERE submitted IS NOT NULL AND done IS NULL AND error is NULL", reg$id)
-  dbSelectWithIds(reg, query, ids, where=FALSE)$job_id
-}
-
-dbGetMaxOfColumn = function(reg, tab, column, default) {
-  query = sprintf("SELECT MAX(%s) AS x FROM %s_%s", column, reg$id, tab)
-  res = dbDoQuery(reg, query)$x
-  if(is.na(res))
-    return(default)
-  return(res)
-}
-
-dbGetMaxSeed = function(reg, default) {
-  dbGetMaxOfColumn(reg, "job_status", "seed", default)
-}
 
 dbGetFirstJobInChunkIds = function(reg, ids){
   query = sprintf("SELECT job_id, first_job_in_chunk_id FROM %s_job_status", reg$id)
   dbSelectWithIds(reg, query, ids)$first_job_in_chunk_id
 }
 
-dbGetJobTimes = function(reg, ids){
-  query = sprintf("SELECT job_id, done-started AS time FROM %s_job_status", reg$id)
-  # incorrect type for empty id vec possible
-  tab = dbSelectWithIds(reg, query, ids)
-  if (!is.integer(tab$time))
-    tab$time = as.integer(tab$time)
-  tab
+dbGetErrorMsgs = function(reg, ids, filter=FALSE, limit) {
+  query = sprintf("SELECT job_id, error from %s_job_status", reg$id)
+  if (filter)
+    query = sprintf("%s WHERE error IS NOT NULL", query)
+  dbSelectWithIds(reg, query, ids, where=!filter, limit=limit)
 }
 
+dbGetStats = function(reg, ids, running=FALSE, expired=FALSE, times=FALSE, batch.ids) {
+  cols = c(n         = "COUNT(job_id)",
+           submitted = "COUNT(submitted)",
+           started   = "COUNT(started)",
+           done      = "COUNT(done)",
+           error     = "COUNT(error)",
+           running   = "NULL",
+           expired   = "NULL",
+           t_min     = "NULL",
+           t_avg     = "NULL",
+           t_max     = "NULL")
 
-dbGetStats = function(reg, ids, running=FALSE, expired=FALSE) {
-  q.r = q.e = "NULL"
+  if (missing(batch.ids) && (expired || running))
+    batch.ids = getBatchIds(reg, "Cannot find jobs on system")
+  if(running)
+    cols["running"] = sprintf("SUM(started IS NOT NULL AND done IS NULL AND error IS NULL AND batch_job_id IN ('%s'))", collapse(batch.ids, sep="','"))
+  if(expired)
+    cols["expired"] = sprintf("SUM(started IS NOT NULL AND done IS NULL AND error IS NULL AND batch_job_id NOT IN ('%s'))", collapse(batch.ids, sep="','"))
+  if (times)
+    cols[c("t_min", "t_avg", "t_max")] = c("MIN(done - started)", "AVG(done - started)", "MAX(done - started)")
 
-  if(running || expired) {
-    fun = getListJobs("Cannot find running or expired jobs")
-    batch.job.ids = fun(getBatchJobsConf(), reg)
+  query = sprintf("SELECT %s FROM %s_job_status", collapse(paste(cols, "AS", names(cols)), sep = ", "), reg$id)
+  df = dbSelectWithIds(reg, query, ids, reorder=FALSE)
 
-    if(running)
-      q.r = sprintf("SUM(started IS NOT NULL AND batch_job_id IN ('%s'))", collapse(batch.job.ids, sep="','"))
-    if(expired)
-      q.e = sprintf("SUM(started IS NOT NULL AND done IS NULL AND error IS NULL AND batch_job_id NOT IN ('%s'))", collapse(batch.job.ids, sep="','"))
-  }
-
-  query = sprintf(paste(
-    "SELECT COUNT(job_id) AS n,",
-    "COUNT(submitted) AS submitted,",
-    "COUNT(started) AS started,",
-    "COUNT(done) AS done,",
-    "COUNT(error) AS error,",
-    "%s AS running,",
-    "%s AS expired,",
-    "MIN(done - started) AS t_min,",
-    "AVG(done - started) AS t_avg,",
-    "MAX(done - started) AS t_max",
-    "FROM %s_job_status"), q.r, q.e, reg$id)
-
-  if(!missing(ids))
-    query = sprintf("%s WHERE job_id IN (%s)", query, collapse(ids))
-
-  df = dbDoQuery(reg, query)
-
-  # Convert to correct type. Null has no type and casts don't work properly with RSQLite
-  doubles = c("t_min", "t_avg", "t_max")
-  lapply(df, function(x) if(x %in% doubles) as.double(x) else as.integer(x))
+  # Convert to correct type. Null has no type and casts tend to not work properly with RSQLite
+  x = c("n", "submitted", "started", "done", "error", "running", "expired")
+  df[x] = lapply(df[x], as.integer)
+  x = c("t_min", "t_avg", "t_max")
+  df[x] = lapply(df[x], as.double)
+  df
 }
 
 ############################################
@@ -347,42 +328,92 @@ dbRemoveJobs = function(reg, ids) {
   return(invisible(TRUE))
 }
 
+
 ############################################
-### UPDATE
+### Messages
 ############################################
-dbSendMessage = function(reg, msg) {
-  dbDoQuery(reg, msg, flags="rw")
+dbSendMessage = function(reg, msg, staged = FALSE) {
+  if (staged) {
+    fn = getSQLFileName(reg, msg$type, msg$ids[1L], getOrderCharacters()[msg$type])
+    writeSQLFile(msg$msg, fn)
+  } else {
+    dbDoQuery(reg, msg$msg, flags="rw")
+  }
 }
 
-dbMakeMessageSubmitted = function(reg, job.ids, time=as.integer(Sys.time()),
-                                  batch.job.id, first.job.in.chunk.id=NULL, resources.timestamp) {
+dbSendMessages = function(reg, msgs, max.retries=200L, sleep=function(r) 1.025^r, staged = FALSE) {
+  if (length(msgs) == 0L)
+    return(TRUE)
+
+  if (staged) {
+    chars = getOrderCharacters()
+
+    # reorder messages in sublist
+    msgs = split(msgs, extractSubList(msgs, "type"))
+    msgs = msgs[order(match(names(msgs), names(chars)))]
+
+    for (cur in msgs) {
+      first = cur[[1L]]
+      fn = getSQLFileName(reg, first$type, first$ids[1L], chars[first$type])
+      writeSQLFile(extractSubList(cur, "msg"), fn)
+    }
+  } else {
+    ok = try(dbDoQueries(reg, extractSubList(msgs, "msg"), flags="rw", max.retries, sleep))
+    if (is.error(ok)) {
+      ok = as.character(ok)
+      if (ok == "dbDoQueries: max retries reached, database is still locked!") {
+        return(FALSE)
+      } else {
+        #throw exception again
+        stopf("Error in dbSendMessages: %s", ok)
+      }
+    }
+  }
+
+  return(TRUE)
+}
+
+
+dbMakeMessageSubmitted = function(reg, job.ids, time=now(), batch.job.id, first.job.in.chunk.id=NULL, resources.timestamp) {
   if(is.null(first.job.in.chunk.id))
     first.job.in.chunk.id = "NULL"
   updates = sprintf("first_job_in_chunk_id=%s, submitted=%i, batch_job_id='%s', resources_timestamp=%i",
                     first.job.in.chunk.id, time, batch.job.id, resources.timestamp)
-  sprintf("UPDATE %s_job_status SET %s WHERE job_id in (%s)", reg$id, updates, collapse(job.ids))
+  list(msg = sprintf("UPDATE %s_job_status SET %s WHERE job_id in (%s)", reg$id, updates, collapse(job.ids)),
+       ids = job.ids,
+       type = "submitted")
 }
 
-dbMakeMessageStarted = function(reg, job.ids, time=as.integer(Sys.time())) {
-  node = gsub("'", "''", Sys.info()["nodename"], fixed=TRUE)
+dbMakeMessageStarted = function(reg, job.ids, time=now()) {
+  node = gsub("'", "\"", Sys.info()["nodename"], fixed=TRUE)
   updates = sprintf("started=%i, node='%s', r_pid=%i, error=NULL, done=NULL", time, node, Sys.getpid())
-  sprintf("UPDATE %s_job_status SET %s WHERE job_id in (%s)", reg$id, updates, collapse(job.ids))
+  list(msg = sprintf("UPDATE %s_job_status SET %s WHERE job_id in (%s)", reg$id, updates, collapse(job.ids)),
+       ids = job.ids,
+       type = "started")
 }
 
 dbMakeMessageError = function(reg, job.ids, err.msg) {
-  err.msg = gsub("'", "''", err.msg, fixed=TRUE)
+  # FIXME how to escape ticks (')? Just replaced with double quotes for the moment
+  err.msg = gsub("'", "\"", err.msg, fixed=TRUE)
+  err.msg = gsub("[^[:print:]]", " ", err.msg)
   updates = sprintf("error='%s', done=NULL", err.msg)
-  sprintf("UPDATE %s_job_status SET %s WHERE job_id in (%s)", reg$id, updates, collapse(job.ids))
+  list(msg = sprintf("UPDATE %s_job_status SET %s WHERE job_id in (%s)", reg$id, updates, collapse(job.ids)),
+       ids = job.ids,
+       type = "error")
 }
 
-dbMakeMessageDone = function(reg, job.ids, time=as.integer(Sys.time())) {
+dbMakeMessageDone = function(reg, job.ids, time=now()) {
   updates = sprintf("done=%i, error=NULL", time)
-  sprintf("UPDATE %s_job_status SET %s WHERE job_id in (%s)", reg$id, updates, collapse(job.ids))
+  list(msg = sprintf("UPDATE %s_job_status SET %s WHERE job_id in (%s)", reg$id, updates, collapse(job.ids)),
+       ids = job.ids,
+       type = "done")
 }
 
 dbMakeMessageKilled = function(reg, job.ids) {
   updates = "resources_timestamp=NULL, submitted=NULL, started=NULL, batch_job_id=NULL, node=NULL, r_pid=NULL, done=NULL, error=NULL"
-  sprintf("UPDATE %s_job_status SET %s WHERE job_id in (%s)", reg$id, updates, collapse(job.ids))
+  list(msgs = sprintf("UPDATE %s_job_status SET %s WHERE job_id in (%s)", reg$id, updates, collapse(job.ids)),
+       ids = job.ids,
+       type = "killed")
 }
 
 dbConvertNumericToPOSIXct = function(x) {
@@ -394,36 +425,3 @@ dbSetJobFunction = function(reg, ids, fun.id) {
   query = sprintf("UPDATE %1$s_job_def SET fun_id = '%2$s' WHERE job_def_id IN (SELECT job_def_id FROM %1$s_job_status WHERE job_id IN (%3$s))", reg$id, fun.id, collapse(ids))
   dbDoQuery(reg, query, flags="rw")
 }
-
-############################################
-### INSERT
-############################################
-dbAddJobs = function(reg, jobs, ...) {
-  fun.ids = extractSubList(jobs, "fun.id")
-  seeds = extractSubList(jobs, "seed")
-  pars = vapply(jobs, function(j) rawToChar(serialize(j$pars, connection=NULL, ascii=TRUE)), character(1L))
-
-  n = dbAddData(reg, "job_def", data = data.frame(fun_id=fun.ids, pars=pars))
-  job.def.ids = dbGetLastAddedIds(reg, "job_def", "job_def_id", n)
-  n = dbAddData(reg, "job_status", data=data.frame(job_def_id=job.def.ids, seed=seeds))
-  job.ids = dbGetLastAddedIds(reg, "job_status", "job_id", n)
-
-  list(job.ids=job.ids, job.def.ids=job.def.ids)
-}
-
-
-# flushes messages en block.
-dbFlushMessages = function(reg, msgs, max.retries=200L, sleep=function(r) 1.025^r) {
-  ok = try(dbDoQueries(reg, msgs, flags="rw", max.retries, sleep))
-  if (is.error(ok)) {
-    ok = as.character(ok)
-    if (ok == "dbDoQueries: max retries reached, database is still locked!") {
-      return(FALSE)
-    } else {
-      #throw exception again
-      stopf("Error in dbFlushMessages: %s", ok)
-    }
-  }
-  return(TRUE)
-}
-

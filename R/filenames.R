@@ -1,7 +1,7 @@
 checkDir = function(path, create=FALSE, check.empty=FALSE, check.posix=FALSE, msg=FALSE) {
   if (create) {
     if (file.exists(path)) {
-      if (!file.info(path)$isdir)
+      if (!isDirectory(path))
         stop("File in place where dir should be created: ", path)
     } else {
       if (msg)
@@ -11,17 +11,16 @@ checkDir = function(path, create=FALSE, check.empty=FALSE, check.posix=FALSE, ms
     }
   }
 
-  if (! file.exists(path)) {
+  if (!isDirectory(path))
     stopf("Directory '%s' does not exists", path)
-  }
 
-  if (file.access(path, mode=2L) != 0L)
-    stopf("Directory '%s' is not writable!", path)
+  if (!is.accessible(path))
+    stopf("Directory '%s' is not readable/writable!", path)
 
   if (check.empty && any(list.files(path, all.files=TRUE) %nin% c(".", "..")))
     stopf("Directory '%s' does not seem to be empty!", path)
 
-  if(check.posix) {
+  if (check.posix) {
     path.abs = makePathAbsolute(path)
     if(! grepl("^[[:alnum:]:/_.+-]+$", path.abs))
       stopf("Directory '%s' contains illegal characters! Allowed: a-z A-Z 0-9 : / + . - _", path.abs)
@@ -34,13 +33,44 @@ createShardedDirs = function(reg, ids) {
   }
 }
 
+# tests a file / directory for read and write permissions
+# uses a heuristic for windows
+is.accessible = function(path) {
+  if (grepl("windows", getOperatingSystem(), ignore.case=TRUE)) {
+    # Workaround: No POSIX file system informations available, use a heuristic
+    rnd = basename(tempfile(""))
+    tf1 = file.path(path, sprintf("test_write_access_file_%s", rnd))
+    td1 = file.path(path, sprintf("test_write_access_dir_%s", rnd))
+    tf2 = file.path(td1, "test_write_access_subfile")
+    td2 = file.path(td1, "test_write_access_subdir")
+
+    # on exit, try to clean up the mess we might have caused
+    on.exit(try(unlink(c(td1, td2, tf1, tf2), recursive=TRUE)))
+
+    # perform the checks
+    ok = try({
+      file.create(tf1) && identical(readLines(tf1), character(0L)) && file.remove(tf1) &&
+      dir.create(td1) && dir.create(td2) && length(list.files(td1)) == 1L &&
+      file.create(tf2) && identical(readLines(tf2), character(0L)) && file.remove(tf2) &&
+      unlink(td1, recursive=TRUE) == 0L
+    })
+
+    if (is.error(ok) || !isTRUE(ok))
+      return(FALSE)
+
+    # we don't need the on exit handler anymore, everything should be fine
+    on.exit(NULL)
+    return(TRUE)
+  }
+
+  return(file.access(path, mode=c(2L, 4L)) == 0L)
+}
+
 makePathAbsolute = function(path) {
   if(substr(path, 1L, 1L) != "/")
     path = normalizePath(path, mustWork=FALSE)
-  # FIXME:
-  # emulate winslash-behaviour
-  # remove this in a future version
-  if (grepl("windows", tolower(getOperatingSystem()), fixed=TRUE))
+  # FIXME: emulated winslash-behaviour for R < 2.13.x (?)
+  if (grepl("windows", getOperatingSystem(), ignore.case=TRUE))
     path = gsub("\\", "/", path, fixed=TRUE)
 
   return(path)
@@ -92,3 +122,10 @@ getResourcesDir = function(file.dir)
 
 getResourcesFilePath = function(reg, timestamp)
   file.path(getResourcesDir(reg$file.dir), sprintf("resources_%i.RData", timestamp))
+
+getPendingDir = function(file.dir)
+  file.path(file.dir, "pending")
+
+getSQLFileName = function(reg, type, id, char = getOrderCharacters()[type]) {
+  file.path(getPendingDir(reg$file.dir), sprintf("pending_%s_%s_%i.sql", char, type, id))
+}

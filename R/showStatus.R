@@ -27,7 +27,8 @@
 #' showStatus(reg)
 #' # should show 10 submitted jobs, which are all done.
 showStatus = function(reg, ids, run.and.exp=TRUE, errors = 10L) {
-  checkArg(reg, "Registry")
+  checkRegistry(reg)
+  syncRegistry(reg)
   if (!missing(ids))
     ids = checkIds(reg, ids)
 
@@ -35,32 +36,32 @@ showStatus = function(reg, ids, run.and.exp=TRUE, errors = 10L) {
   checkArg(errors, "integer", na.ok=FALSE, len=1L)
 
   run.and.exp = run.and.exp && !is.null(getListJobs())
-  stats = dbGetStats(reg, ids, running = run.and.exp, expired = run.and.exp)
+  stats = dbGetStats(reg, ids, running=run.and.exp, expired=run.and.exp, times=TRUE)
 
   procent = function(x, n) {
     if(is.na(x))
       return("")
-    if(n == 0L)
-      return("(0.0%)")
-    return(sprintf("(%6.2f%%)", x / n * 100))
+    sprintf("(%6.2f%%)", x / n * 100)
   }
 
-  with(stats, {
-    catf("Status for jobs: %i", n)
-    catf("Submitted: %4i %s", submitted, procent(submitted, n))
-    catf("Started:   %4i %s", started, procent(started, n))
-    catf("Running:   %4i %s", running, procent(running, n))
-    catf("Done:      %4i %s", done, procent(done, n))
-    catf("Errors:    %4i %s", error, procent(error, n))
-    catf("Expired:   %4i %s", expired, procent(expired, n))
-    catf("Time: min=%.2fs avg=%.2fs max=%.2fs", t_min, t_avg, t_max)
-  })
+  output = collapse(c("Status for jobs: %%i",
+                      "Submitted: %%%1$ii %%s",
+                      "Started:   %%%1$ii %%s",
+                      "Running:   %%%1$ii %%s",
+                      "Done:      %%%1$ii %%s",
+                      "Errors:    %%%1$ii %%s",
+                      "Expired:   %%%1$ii %%s",
+                      "Time: min=%%.2fs avg=%%.2fs max=%%.2fs"), "\n")
+
+  output = sprintf(output, min(4L, nchar(sprintf("%i", stats$n + 1L))))
+  with(stats, catf(output, n, submitted, procent(submitted, n), started, procent(started, n),
+                   running, procent(running, n), done, procent(done, n), error, procent(error, n),
+                   expired, procent(expired, n), t_min, t_avg, t_max))
 
   m = min(errors, stats$error)
   if(m > 0L) {
-    query = sprintf("SELECT job_id, error from %s_job_status WHERE error IS NOT NULL", reg$id)
-    msgs = dbSelectWithIds(reg, query, ids, where=FALSE, limit=m)
-    catf("\nShowing first %i errors: ", m)
+    msgs = dbGetErrorMsgs(reg, ids, filter=TRUE, limit=m)
+    catf("\nShowing first %i errors:", m)
     cat(sprintf("Error in %i: %s", msgs$job_id, msgs$error), sep = "\n")
   }
 

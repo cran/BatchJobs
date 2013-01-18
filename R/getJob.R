@@ -9,7 +9,7 @@
 #' @param check.id [\code{logical(1)}]\cr
 #'   Check the job id?
 #'   Default is \code{TRUE}.
-#' @return [\code{Job}].
+#' @return [\code{\link{Job}}].
 #' @export
 getJob = function(reg, id, load.fun=FALSE, check.id=TRUE) {
   if (check.id)
@@ -32,12 +32,12 @@ getJob = function(reg, id, load.fun=FALSE, check.id=TRUE) {
 #' @return [list of \code{\link{Job}}].
 #' @export
 getJobs = function(reg, ids, load.fun=FALSE, check.ids=TRUE) {
-  checkArg(reg, "Registry")
+  checkRegistry(reg)
+  # syncRegistry(reg) NOT!
   checkArg(load.fun, "logical", len=1L, na.ok=FALSE)
   checkArg(check.ids, "logical", len=1L, na.ok=FALSE)
   UseMethod("getJobs")
 }
-
 
 #' @method getJobs Registry
 #' @S3method getJobs Registry
@@ -53,8 +53,7 @@ getJobs.Registry = function(reg, ids, load.fun=FALSE, check.ids=TRUE) {
   fun.dir = getFunDir(reg$file.dir)
   fid = unique(extractSubList(jobs, "fun.id"))
   fn = file.path(fun.dir, sprintf("%s.RData", fid))
-  loaded.stuff = lapply(fn, load2, parts = c("fun", "more.args"))
-  names(loaded.stuff) = fid
+  loaded.stuff = setNames(lapply(fn, load2, parts = c("fun", "more.args")), fid)
   lapply(jobs, function(job) {
     x = loaded.stuff[[job$fun.id]]
     job$fun = x$fun

@@ -33,21 +33,25 @@
 #'
 #' # define function to reduce on slave, we want to sum the squares
 #' myreduce <- function(aggr, job, res) aggr + res
+#'
 #' # sum 5 results on each slave process, i.e. 4 jobs
 #' reg2 <- makeRegistry(id="BatchJobsExample2", file.dir=tempfile(), seed=123)
 #' batchReduceResults(reg1, reg2, fun=myreduce, init=0, block.size=5)
 #' submitJobs(reg2)
+#'
 #' # now reduce one final time on master
 #' reduceResults(reg2, fun=myreduce)
 batchReduceResults = function(reg, reg2, fun, ids, part=NA_character_, init, block.size, more.args=list()) {
-  checkArg(reg, cl="Registry")
-  checkArg(reg2, cl="Registry")
+  checkRegistry(reg)
+  checkRegistry(reg2)
+  syncRegistry(reg)
+  syncRegistry(reg2)
   checkArg(fun, formals=c("aggr", "job", "res"))
   if (missing(ids)) {
     ids = dbGetJobIdsIfAllDone(reg)
   } else {
     ids = checkIds(reg, ids)
-    if (any(ids %nin% dbGetDone(reg)))
+    if (length(dbFindDone(reg, ids, negate=TRUE)) > 0L)
       stop("Not all jobs with corresponding ids finished (yet)!")
   }
   block.size = convertInteger(block.size)
@@ -69,5 +73,5 @@ batchReduceResultsWrapper = function(aggr, x, ..reg, ..fun, ..part) {
   # x is id
   # use lazy evaluation, if fun doesn't access job or res (unlikely)
   ..fun(aggr = aggr, job = getJob(..reg, x, check.id=FALSE),
-    res = loadResult(..reg, x, ..part, check.id=FALSE))
+        res = getResult(..reg, x, ..part))
 }

@@ -3,6 +3,7 @@
 \title{Use multiple cores on local Linux machine to spawn parallel jobs.}
 \usage{
   makeClusterFunctionsMulticore(ncpus, max.jobs, max.load,
+    nice,
     r.options = c("--no-save", "--no-restore", "--no-init-file", "--no-site-file"),
     script)
 }
@@ -19,6 +20,11 @@
   the last 5 min) at which the worker is considered
   occupied, so that no job can be submitted.  Default is
   \code{ncpus-1}.}
+
+  \item{nice}{[\code{integer(1)}]\cr Process priority to
+  run R with set via nice. Integers between -20 and 19 are
+  allowed.  If missing, processes are not nice'd and the
+  system default applies (usually 0).}
 
   \item{r.options}{[\code{character}] Options for R and
   Rscript, one option per element of the vector, a la
@@ -41,5 +47,13 @@
 \description{
   Use multiple cores on local Linux machine to spawn
   parallel jobs.
+}
+\examples{
+\dontrun{
+cluster.functions = makeClusterFunctionsMulticore(4)
+}
+}
+\seealso{
+  \link{ClusterFunctions}
 }
 

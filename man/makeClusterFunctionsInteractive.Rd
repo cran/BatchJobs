@@ -2,7 +2,13 @@
 \alias{makeClusterFunctionsInteractive}
 \title{Create cluster functions for synchronous execution in same session.}
 \usage{
-  makeClusterFunctionsInteractive()
+  makeClusterFunctionsInteractive(write.logs = TRUE)
+}
+\arguments{
+  \item{write.logs}{[\code{logical(1)}]\cr Sink the output
+  to log files. Turning logging off can increase the speed
+  of calculations but makes it next to impossible to debug.
+  Default is \code{TRUE}.}
 }
 \value{
   [\code{\link{ClusterFunctions}}].
@@ -19,5 +25,13 @@
   Listing jobs returns an empty vector (as no jobs can be
   running when you call this) and \code{killJob} returns at
   once (for the same reason).
+}
+\examples{
+\dontrun{
+cluster.functions = makeClusterFunctionsInteractive()
+}
+}
+\seealso{
+  \link{ClusterFunctions}
 }
 

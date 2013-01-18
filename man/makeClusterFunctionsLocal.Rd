@@ -21,4 +21,12 @@
   one running job and while it is running, the master R
   process is blocked.
 }
+\examples{
+\dontrun{
+cluster.functions = makeClusterFunctionsLocal()
+}
+}
+\seealso{
+  \link{ClusterFunctions}
+}
 

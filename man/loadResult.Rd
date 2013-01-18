@@ -2,8 +2,7 @@
 \alias{loadResult}
 \title{Loads a specific result file.}
 \usage{
-  loadResult(reg, id, part = NA_character_,
-    check.id = TRUE)
+  loadResult(reg, id, part = NA_character_)
 }
 \arguments{
   \item{reg}{[\code{\link{Registry}}]\cr Registry.}
@@ -14,9 +13,6 @@
   result files, then defines which result file part(s)
   should be loaded.  \code{NA} means all parts are loaded,
   which is the default.}
-
-  \item{check.id}{[\code{logical(1)}]\cr Check the job id?
-  Default is \code{TRUE}.}
 }
 \value{
   [any]. Result of job.

@@ -10,17 +10,19 @@
 .BatchJobs.conf <- new.env()
 
 .onAttach = function(libname, pkgname) {
-  # FIXME: we should move this to onLoad when "is"
-  # is not used in Bmisc anymore
   if (!isOnSlave()) {
-    assignConfDefaults()  
+    packageStartupMessage(collapse(capture.output(showConf()), "\n"))
   }
-  # only init the conf if we are not in slave process
-  # there we load it anyway
+}
+
+.onLoad = function(libname, pkgname) {
   if (!isOnSlave()) {
-    # now load stuff from package and userhome
-    readConfs()
-    # show it
-    lapply(capture.output(showConf()), packageStartupMessage)
+    assignConfDefaults()
+    if (missing(libname) || missing(pkgname)) {
+      # this can happen with testthat while loading from skel/
+      readConfs(.find.package(package = "BatchJobs"))
+    } else {
+      readConfs(file.path(libname, pkgname))
+    }
   }
 }

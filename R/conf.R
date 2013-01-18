@@ -1,10 +1,21 @@
+#' BatchJobs configuration.
+#'
+#' In order to understand how the package should be configured
+#' please read:
+#' \url{https://code.google.com/p/batchjobs/wiki/Configuration}
+#'
+#' @name configuration
+#' @rdname configuration
+#' @aliases .BatchJobs.R
+NULL
+
 # sources 1 config file and returns the envir
 sourceConfFile = function(conffile) {
   checkArg(conffile, "character", len=1L, na.ok=FALSE)
-  if (!file.exists(conffile)) {
+  if (!file.exists(conffile))
     stopf("Configuration file does not exist: '%s'", conffile)
-  }
-  message("Sourcing configuration file: ", conffile)
+
+  packageStartupMessage(sprintf("Sourcing configuration file: '%s'", conffile))
   conf = new.env()
   x = try(sys.source(conffile, envir=conf))
   if (is.error(x))
@@ -32,15 +43,17 @@ assignConf = function(conf) {
 
 # reads package conf, userhome conf, working dir conf
 # then assigns them to namespace
-readConfs = function() {
-  fn.pack = file.path(.path.package("BatchJobs"), "etc", ".BatchJobs.R")
+readConfs = function(path) {
+  # if we want to stay compatible with R 2.12 we cannot use
+  # public find.package without the dot
+  fn.pack = file.path(path, "etc", "BatchJobs_global_config.R")
   fn.user = path.expand("~/.BatchJobs.R")
   fn.wd = suppressWarnings(normalizePath(".BatchJobs.R"))
-  conffiles = Filter(file.exists, c(fn.pack, fn.user, fn.wd))
+  conffiles = Filter(file.exists, unique(c(fn.pack, fn.user, fn.wd)))
   if (length(conffiles) == 0L)
-    stopf("No configuation found at all. Not in package, not in user.home, not in work dir!")
-  conf = sourceConfFiles(conffiles)
-  assignConf(conf)
+    stop("No configuation found at all. Not in package, not in user.home, not in work dir!")
+
+  assignConf(sourceConfFiles(conffiles))
 }
 
 assignConfDefaults = function() {
@@ -53,6 +66,9 @@ assignConfDefaults = function() {
   conf$db.options = list()
   conf$default.resources = list()
   conf$debug = FALSE
+  conf$raise.warnings = FALSE
+  conf$staged.queries = FALSE
+  conf$max.concurrent.jobs = Inf
 }
 
 # loads conf into namespace on slave
@@ -80,18 +96,18 @@ saveConf = function(reg) {
 }
 
 checkConf = function(conf) {
-  ns = ls(conf)
+  ns = ls(conf, all.names=TRUE)
   ns2 = c("cluster.functions", "mail.start", "mail.done", "mail.error",
-    "mail.from", "mail.to", "mail.control", "db.driver", "db.options", 
-    "default.resources", "debug")
+    "mail.from", "mail.to", "mail.control", "db.driver", "db.options",
+    "default.resources", "debug", "raise.warnings", "staged.queries", "max.concurrent.jobs")
   if (any(ns %nin% ns2))
     stopf("You are only allowed to define the following R variables in your config file:\n%s",
       collapse(ns2, sep=", "))
 }
 
 checkConfElements = function(cluster.functions, mail.to, mail.from,
-  mail.start, mail.done, mail.error, mail.control,
-  db.driver, db.options, default.resources, debug) {
+  mail.start, mail.done, mail.error, mail.control, db.driver, db.options, default.resources, debug,
+  raise.warnings, staged.queries, max.concurrent.jobs) {
 
   if (!missing(cluster.functions))
     checkArg(cluster.functions, cl = "ClusterFunctions")
@@ -119,6 +135,12 @@ checkConfElements = function(cluster.functions, mail.to, mail.from,
     checkArg(default.resources, cl = "list")
   if (!missing(debug))
     checkArg(debug, cl = "logical", len = 1L, na.ok = FALSE)
+  if (!missing(raise.warnings))
+    checkArg(raise.warnings, cl = "logical", len = 1L, na.ok = FALSE)
+  if (!missing(staged.queries))
+    checkArg(staged.queries, cl = "logical", len = 1L, na.ok = FALSE)
+  if (!missing(max.concurrent.jobs))
+    checkArg(max.concurrent.jobs, cl = "numeric", len = 1L, na.ok = FALSE)
 }
 
 getClusterFunctions = function(conf) {
@@ -126,10 +148,11 @@ getClusterFunctions = function(conf) {
 }
 
 #' Display BatchJobs configuration.
-#' @return Nothing.
+#'
+#' @return Invisibly returns a named list with configuration settings.
 #' @export
 showConf = function() {
-  x = getBatchJobsConf()
+  x = as.list(getBatchJobsConf())
   f = function(y) if(is.null(y)) "" else y
   catf("BatchJobs configuration:")
   catf("  cluster functions: %s", f(x$cluster.functions$name))
@@ -140,4 +163,21 @@ showConf = function() {
   catf("  mail.error: %s", f(x$mail.error))
   catf("  default.resources: %s", listToShortString(x$default.resources))
   catf("  debug: %s", f(x$debug))
+  catf("  raise.warnings: %s", f(x$raise.warnings))
+  catf("  staged.queries: %s", f(x$staged.queries))
+  catf("  max.concurrent.jobs: %s", f(x$max.concurrent.jobs))
+  invisible(x)
+}
+
+#' Load a specific configuration file.
+#'
+#' @param conffile [\code{character(1)}]\cr
+#'   Location of the configuration file to load.
+#' @return Nothing.
+#' @export
+loadConfig = function(conffile=".BatchJobs.R") {
+  # checks are done in sourceConfFile
+  conf = sourceConfFile(conffile)
+  assignConf(conf)
+  showConf()
 }

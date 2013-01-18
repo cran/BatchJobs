@@ -33,4 +33,12 @@
   The following variables are accessible in the template
   file: a) all argu
 }
+\examples{
+\dontrun{
+cluster.functions = makeClusterFunctionsLSF("~/mytemplate.tmpl")
+}
+}
+\seealso{
+  \link{ClusterFunctions}
+}
 

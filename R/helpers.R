@@ -1,25 +1,25 @@
-checkIds = function(reg, ids) {
+checkRegistry = function(reg, ids) {
+  checkArg(reg, cl = "Registry")
+}
+
+checkIds = function(reg, ids, check.present=TRUE) {
   ids = convertIntegers(ids)
   checkArg(ids, cl="integer", na.ok=FALSE)
   if (anyDuplicated(ids) > 0L) {
     dup = ids[duplicated(ids)]
     stopf("You have duplicated entries in your id vector: %s", collapse(dup))
   }
-  checkIdsPresent(reg, ids)
+  if (check.present)
+    dbCheckJobIds(reg, ids)
   return(ids)
 }
 
-checkId = function(reg, id) {
+checkId = function(reg, id, check.present=TRUE) {
   id = convertInteger(id)
   checkArg(id, cl="integer", na.ok=FALSE, len=1L)
-  checkIdsPresent(reg, id)
+  if (check.present)
+    dbCheckJobIds(reg, id)
   return(id)
-}
-
-checkIdsPresent = function(reg, ids) {
-  faulty = setdiff(ids, dbGetJobIds(reg))
-  if (length(faulty) > 0L)
-    stopf("Ids not present in registry: %s", collapse(faulty))
 }
 
 checkMoreArgs = function(more.args, reserved) {
@@ -48,13 +48,13 @@ checkPart = function(reg, part) {
   }
 }
 
+
 getListJobs = function(msg=NULL) {
   conf = getBatchJobsConf()
   cf = getClusterFunctions(conf)
   fun = cf$listJobs
-  if (is.null(fun))
-    if (!is.null(msg))
-      stopf("%s because %s cluster functions do not support listing of jobs!", msg, cf$name)
+  if (is.null(fun) && !is.null(msg))
+    stopf("%s because %s cluster functions do not support listing of jobs!", msg, cf$name)
   return(fun)
 }
 
@@ -62,10 +62,14 @@ getKillJob = function(msg=NULL) {
   conf = getBatchJobsConf()
   cf = getClusterFunctions(conf)
   fun = cf$killJob
-  if (is.null(fun))
-    if (!is.null(msg))
-      stopf("%s because %s cluster functions do not support killing of jobs!", msg, cf$name)
+  if (is.null(fun) && !is.null(msg))
+    stopf("%s because %s cluster functions do not support killing of jobs!", msg, cf$name)
   return(fun)
+}
+
+getBatchIds = function(reg, msg=NULL) {
+  fun = getListJobs(msg)
+  fun(getBatchJobsConf(), reg)
 }
 
 getRandomSeed = function(n = 1L) {
@@ -79,12 +83,22 @@ seeder = function(reg, seed) {
   prev.kind = RNGkind()
   set.seed(seed, kind = reg$RNGkind[1L], normal.kind=reg$RNGkind[2L])
 
-  reset = function() {
-    RNGkind(kind = prev.kind[1L], normal.kind = prev.kind[2L])
-    assign(".Random.seed", prev.seed, envir=.GlobalEnv)
-  }
+  return(list(
+    reset = function() {
+      RNGkind(kind = prev.kind[1L], normal.kind = prev.kind[2L])
+      assign(".Random.seed", prev.seed, envir=.GlobalEnv)
+    }))
+}
 
-  return(list(reset = reset))
+switchWd = function(reg) {
+  cur = getwd()
+  message("Setting work dir: ", reg$work.dir)
+  setwd(reg$work.dir)
+
+  return(list(reset = function() {
+    message("Setting work back to: ", cur)
+    setwd(cur)
+  }))
 }
 
 addIntModulo = function(x, y, mod = .Machine$integer.max) {
@@ -106,6 +120,11 @@ getOperatingSystem = function() {
   Sys.info()["sysname"]
 }
 
+
+now = function() {
+  as.integer(Sys.time())
+}
+
 # Extract a FIRST match for a pattern from a vector of strings.
 # @param x [\code{character}]\cr
 #   Vector of strings.
@@ -114,13 +133,13 @@ getOperatingSystem = function() {
 # @return [\code{character}]. Same length as x.
 #   Returns NA if pattern was not found.
 strextract = function(x, pattern) {
-  if (length(x) == 0)
-    return(character(0))
+  if (length(x) == 0L)
+    return(character(0L))
   starts = regexpr(pattern, x)
   lens = attr(starts, "match.length")
-  stops = starts + lens - 1
+  stops = starts + lens - 1L
   mapply(function(x, start, stop) {
-    if (start == -1)
+    if (start == -1L)
       as.character(NA)
     else
       substr(x, start, stop)
@@ -132,5 +151,41 @@ trim = function(x, ltrim=TRUE, rtrim=TRUE) {
     x = sub("^[[:space:]]+", "", x)
   if (rtrim)
     x = sub("[[:space:]]+$", "", x)
+  return(x)
+}
+
+names2 = function(x, missing.val="") {
+  n = names(x)
+  if (is.null(n))
+    return(rep(missing.val, length(x)))
+  replace(n, is.na(n) | n == "", missing.val)
+}
+
+list2df = function(li, force.names=FALSE) {
+  if (length(li) == 0L)
+    return(as.data.frame(matrix(nrow = 0L, ncol = 0L)))
+
+  if (force.names) {
+    li = lapply(li, function(x) setNames(x, make.names(names2(x), unique=TRUE)))
+  }
+
+  cols = unique(unlist(lapply(li, names)))
+
+  if (length(cols) == 0L)
+    return(as.data.frame(matrix(nrow = length(li), ncol = 0L)))
+
+  res = namedList(cols)
+  for(col in cols) {
+    tmp = lapply(li, function(it) it[[col]])
+    res[[col]] = simplify2array(replace(tmp, vapply(tmp, is.null, logical(1L)), NA))
+  }
+  as.data.frame(res)
+}
+
+shortenString = function(x, len, str.short="...") {
+  if (is.na(x))
+    return(NA_character_)
+  if (nchar(x) > len)
+    return(paste(substr(x, 1L, len - nchar(str.short)), str.short, sep=""))
   return(x)
 }

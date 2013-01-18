@@ -19,7 +19,8 @@
   arguments passed to \code{fun}.  Default is empty list.}
 }
 \value{
-  Vector of type \code{integer} with job ids.
+  [\code{data.frame}]. Expanded grid of combinations
+  produced by \code{\link{expand.grid}}.
 }
 \description{
   Maps an n-ary-function over a list of all combinations

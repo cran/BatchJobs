@@ -16,7 +16,7 @@
   Default is \code{TRUE}.}
 }
 \value{
-  [\code{Job}].
+  [\code{\link{Job}}].
 }
 \description{
   Get job from registry by id.

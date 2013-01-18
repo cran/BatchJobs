@@ -18,10 +18,14 @@
 #'   Load average (of the last 5 min) at which the worker is considered occupied,
 #'   so that no job can be submitted.
 #'   Default is \code{ncpus-1}.
+#' @param nice [\code{integer(1)}]\cr
+#'   Process priority to run R with set via nice. Integers between -20 and 19 are allowed.
+#'   If missing, processes are not nice'd and the system default applies (usually 0).
+#'   Default is no niceing.
 #' @param r.options [\code{character}]
-#'   Options for R and Rscript, one option per element of the vector, 
+#'   Options for R and Rscript, one option per element of the vector,
 #'   a la \dQuote{--vanilla}.
-#'   Default is \code{c("--no-save", "--no-restore", "--no-init-file", "--no-site-file")}. 
+#'   Default is \code{c("--no-save", "--no-restore", "--no-init-file", "--no-site-file")}.
 #' @param script [\code{character(1)}]\cr
 #'   Path to helper bash script which interacts with the worker.
 #'   You really should not have to touch this, as this would imply that we have screwed up and
@@ -34,10 +38,10 @@
 #' @return [\code{\link{SSHWorker}}].
 #' @export
 #' @aliases SSHWorker
-makeSSHWorker = function(nodename, rhome="", ncpus, max.jobs, max.load, 
+makeSSHWorker = function(nodename, rhome="", ncpus, max.jobs, max.load, nice,
   r.options=c("--no-save", "--no-restore", "--no-init-file", "--no-site-file"), script) {
-  
-  worker = makeWorkerRemoteLinux(nodename, rhome, r.options, script, ncpus, max.jobs, max.load)
+
+  worker = makeWorkerRemoteLinux(nodename, rhome, r.options, script, ncpus, max.jobs, max.load, nice)
   class(worker) = c("SSHWorker", class(worker))
   return(worker)
 }
@@ -66,12 +70,13 @@ makeSSHWorker = function(nodename, rhome="", ncpus, max.jobs, max.load,
 #' # Then a call to 'makeClusterFunctionsSSH'
 #' # might look like this:
 #'
-#' cf = makeClusterFunctionsSSH(
+#' cluster.functions = makeClusterFunctionsSSH(
 #'   makeSSHWorker(nodename="larry", rhome="/usr/local/R", max.jobs=2),
 #'   makeSSHWorker(nodename="curley", rhome="/opt/R/R-current"),
 #'   makeSSHWorker(nodename="moe", rhome="/opt/R/R-current"))
 #' }
 #' @export
+#' @seealso \link{ClusterFunctions} \code{\link{makeSSHWorker}}
 makeClusterFunctionsSSH = function(..., workers) {
   args = list(...)
   if (!xor(length(args) > 0L, !missing(workers)))
@@ -84,13 +89,16 @@ makeClusterFunctionsSSH = function(..., workers) {
   nodenames = extractSubList(workers, "nodename")
   dup = duplicated(nodenames)
   if (any(dup))
-    stopf("Multiple definitions for worker nodenames: %s!", nodenames[dup])
+    stopf("Multiple definitions for worker nodenames: %s!", collapse(nodenames[dup]))
   names(workers) = nodenames
+  rm(nodenames, dup)
 
   submitJob = function(conf, reg, job.name, rscript, log.file, job.dir, resources) {
     worker = findWorker(workers, reg$file.dir, tdiff=5L)
     if (is.null(worker)) {
-      makeSubmitJobResult(status=1L, batch.job.id=NULL, msg="SSH busy, no worker available!")
+      states = collapse(extractSubList(workers, "available", simplify=TRUE), sep="")
+      makeSubmitJobResult(status=1L, batch.job.id=NULL,
+        msg=sprintf("Workers busy: %s", states))
     } else {
       pid = try(startWorkerJob(worker, rscript, log.file))
       if (is.error(pid))

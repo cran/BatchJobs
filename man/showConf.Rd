@@ -5,7 +5,8 @@
   showConf()
 }
 \value{
-  Nothing.
+  Invisibly returns a named list with configuration
+  settings.
 }
 \description{
   Display BatchJobs configuration.

@@ -3,7 +3,7 @@
 \title{Combination of makeRegistry, batchMap and submitJobs.}
 \usage{
   batchMapQuick(fun, ..., more.args = list(),
-    packages = character(0L), chunk.size, inds,
+    packages = character(0L), chunk.size, n.chunks, inds,
     resources = list(), temporary = FALSE)
 }
 \arguments{
@@ -22,7 +22,15 @@
 
   \item{chunk.size}{[\code{integer(1)}]\cr Preferred number
   of jobs in each chunk.  Can not be used in combination
-  with \code{n.chunks} Default is not to use chunking.}
+  with \code{n.chunks}.  Note that the ids will get
+  shuffled to balance out possible run time differences.
+  Default is not to use chunking.}
+
+  \item{n.chunks}{[\code{integer(1)}]\cr Preferred number
+  chunks.  Can not be used in combination with
+  \code{chunk.size}.  Note that the ids will get shuffled
+  to balance out possible run time differences.  Default is
+  not to use chunking.}
 
   \item{inds}{[\code{integer}]\cr Indices of ids / chunks
   to submit.  Default is all.}
@@ -30,7 +38,7 @@
   \item{resources}{[\code{list}]\cr Required resources for
   all batch jobs.  Default is empty list.}
 
-  \item{temporary}{[\code{logical}]\cr Create the
+  \item{temporary}{[\code{logical(1)}]\cr Create the
   \code{file.dir} inside R's \code{tempdir}?  Default is
   \code{FALSE}.}
 }
@@ -43,7 +51,7 @@
   quick computations on the cluster. Should only be used by
   skilled users who know what they are doing. Creates the
   file.dir in current directory under the name
-  \dQuote{.BatchJobs_bmq}, maps function, potentially
-  chunks jobs and submits them.
+  \dQuote{bmq_[random alphanumerics]}, maps function,
+  potentially chunks jobs and submits them.
 }
 

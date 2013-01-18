@@ -19,16 +19,17 @@
 #' # which square numbers are even:
 #' filterResults(reg, fun=function(job, res) res %% 2 == 0)
 filterResults = function(reg, ids, fun, ...) {
-  checkArg(reg, "Registry")
+  checkRegistry(reg)
+  syncRegistry(reg)
   checkArg(fun, formals=c("job", "res"))
   if (missing(ids))
-    ids = dbGetDone(reg)
+    ids = dbFindDone(reg)
   else
     ids = checkIds(reg, ids)
 
   Filter(function(id) {
     fun(job = getJob(reg, id, check.id=FALSE),
-        res = loadResult(reg, id, check.id=FALSE),
+        res = getResult(reg, id),
         ...)
   }, ids)
 }

@@ -37,18 +37,19 @@
   a function \code{function(aggr, job, res, ...)} to reduce
   things, for all others, a function \code{function(job,
   res, ...)} to select stuff.  Here, \code{job} is the
-  current job descriptor, \code{result} is the current
-  result object and \code{aggr} are the so far aggregated
-  results. When using \code{reduceResults}, your function
-  should add the stuff you want to have from \code{job} and
-  \code{result} to \code{aggr} and return that.  When using
-  the other reductions, you should select the stuff you
-  want to have from \code{job} and \code{result} and return
-  something that can be coerced to an element of the
-  selected return data structure (reasonable conversion is
-  tried internally).  Default behavior for this argument is
-  to return \code{res}, except for \code{reduceResults}
-  where no default is available.}
+  current job descriptor (see \code{\link{Job}}),
+  \code{result} is the current result object and
+  \code{aggr} are the so far aggregated results. When using
+  \code{reduceResults}, your function should add the stuff
+  you want to have from \code{job} and \code{result} to
+  \code{aggr} and return that.  When using the other
+  reductions, you should select the stuff you want to have
+  from \code{job} and \code{result} and return something
+  that can be coerced to an element of the selected return
+  data structure (reasonable conversion is tried
+  internally).  Default behavior for this argument is to
+  return \code{res}, except for \code{reduceResults} where
+  no default is available.}
 
   \item{init}{[\code{ANY}]\cr Initial element, as used in
   \code{\link{Reduce}}.  Default is first result.}
@@ -59,7 +60,7 @@
   values be named?  Default is \code{TRUE}.}
 
   \item{rows}{[\code{logical(1)}]\cr Should the selected
-  vectors be usedd as rows (or columns) in the result
+  vectors be used as rows (or columns) in the result
   matrix?  Default is \code{TRUE}.}
 
   \item{strings.as.factors}{[\code{logical(1)}] Should all

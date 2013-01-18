@@ -15,15 +15,14 @@
 #' @seealso \code{\link{reduceResults}}
 #' @export
 #' @examples
-#' \dontrun{
 #' reg <- makeRegistry(id="BatchJobsExample", file.dir=tempfile(), seed=123)
 #' f <- function(x) if (x==1) stop("oops") else x
 #' batchMap(reg, f, 1:2)
 #' testJob(reg, 1)
 #' testJob(reg, 2)
-#'}
 testJob = function(reg, id, resources=list()) {
-  checkArg(reg, cl="Registry")
+  checkRegistry(reg)
+  #syncRegistry(reg)
   if (missing(id)) {
     id = dbGetJobId(reg)
     if (length(id) == 0L)
@@ -33,8 +32,8 @@ testJob = function(reg, id, resources=list()) {
     id = checkId(reg, id)
   }
   checkArg(resources, "list")
-  resources = do.call(resrc, resources)         
-  
+  resources = resrc(resources)
+
   # we dont want to change anything in the true registry / file dir / DB
   # so we have to copy stuff a little bit
   r = reg
@@ -70,7 +69,7 @@ testJob = function(reg, id, resources=list()) {
   system(cmd, wait=TRUE)
   message("### Output of new R process ends here ###")
   messagef("### Approximate running time: %.2f seconds", as.numeric(Sys.time() - stime))
-  res = try(loadResult(reg, id, check.id=FALSE))
+  res = try(getResult(reg, id))
   if (is.error(res))
     return(NULL)
   return(res)

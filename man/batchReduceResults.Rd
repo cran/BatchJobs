@@ -50,10 +50,12 @@ submitJobs(reg1)
 
 # define function to reduce on slave, we want to sum the squares
 myreduce <- function(aggr, job, res) aggr + res
+
 # sum 5 results on each slave process, i.e. 4 jobs
 reg2 <- makeRegistry(id="BatchJobsExample2", file.dir=tempfile(), seed=123)
 batchReduceResults(reg1, reg2, fun=myreduce, init=0, block.size=5)
 submitJobs(reg2)
+
 # now reduce one final time on master
 reduceResults(reg2, fun=myreduce)
 }
