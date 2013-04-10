@@ -9,19 +9,19 @@
 #'
 #' @param reg [\code{\link{Registry}}]\cr
 #'   Registry.
-#' @param ids [\code{\link{matrix}}]\cr
+#' @param ids [\code{integer}]\cr
 #'   Vector of job ids.
 #'   Default is all jobs currently on the system.
 #' @param sleep [\code{numeric(1)}]\cr
-#'   Seconds to sleep between updates. Default is \code{10}.
+#'   Seconds to sleep between status updates. Default is \code{10}.
 #' @param timeout [\code{numeric(1)}]\cr
 #'   After waiting \code{timeout} seconds, show a message and return \code{FALSE}.
 #'   This argument may be required on some systems where, e.g., expired jobs or jobs on hold
 #'   are problematic to detect. If you don't want a timeout, set this to \code{Inf}.
 #'   Default is \code{604800} (one week).
 #' @param stop.on.error [\code{logical(1)}]\cr
-#'   Stop if a job terminates with an error? Default is \code{FALSE}.
-#' @return Returns \code{TRUE} on success and \code{FALSE} if either
+#'   Immediatly return if a job terminates with an error? Default is \code{FALSE}.
+#' @return Returns \code{TRUE} if all jobs terminated and \code{FALSE} if either
 #'   \code{stop.on.error} is \code{TRUE} and an error occured or the timeout is reached.
 #' @export
 waitForJobs = function(reg, ids, sleep = 10, timeout = 604800, stop.on.error = FALSE) {
@@ -51,6 +51,7 @@ waitForJobs = function(reg, ids, sleep = 10, timeout = 604800, stop.on.error = F
       on.sys = length(dbFindOnSystem(reg, ids, batch.ids = batch.ids))
       stats = dbGetStats(reg, ids, running=TRUE, expired=FALSE, times=FALSE, batch.ids = batch.ids)
       bar$set(n - on.sys, msg = sprintf("Waiting [S:%i R:%i D:%i E:%i]", on.sys, stats$running, stats$done, stats$error))
+      on.exit(bar$kill())
 
       if (stop.on.error && stats$error > 0L) {
         err = dbGetErrorMsgs(reg, ids, filter=TRUE, limit=1L)
@@ -65,8 +66,6 @@ waitForJobs = function(reg, ids, sleep = 10, timeout = 604800, stop.on.error = F
       suppressMessages(syncRegistry(reg))
       batch.ids = getBatchIds(reg, "Cannot find jobs on system")
     }
-
-    bar$kill()
 
     if (on.sys > 0L) {
       messagef("Timeout reached. %i jobs still on system.", on.sys)

@@ -1,7 +1,3 @@
-checkRegistry = function(reg, ids) {
-  checkArg(reg, cl = "Registry")
-}
-
 checkIds = function(reg, ids, check.present=TRUE) {
   ids = convertIntegers(ids)
   checkArg(ids, cl="integer", na.ok=FALSE)
@@ -154,14 +150,15 @@ trim = function(x, ltrim=TRUE, rtrim=TRUE) {
   return(x)
 }
 
+### FIXME this is going to BBmisc!
 names2 = function(x, missing.val="") {
   n = names(x)
   if (is.null(n))
-    return(rep(missing.val, length(x)))
+    return(rep.int(missing.val, length(x)))
   replace(n, is.na(n) | n == "", missing.val)
 }
 
-list2df = function(li, force.names=FALSE) {
+list2df = function(li, force.names=FALSE, strings.as.factors = default.stringsAsFactors()) {
   if (length(li) == 0L)
     return(as.data.frame(matrix(nrow = 0L, ncol = 0L)))
 
@@ -179,7 +176,7 @@ list2df = function(li, force.names=FALSE) {
     tmp = lapply(li, function(it) it[[col]])
     res[[col]] = simplify2array(replace(tmp, vapply(tmp, is.null, logical(1L)), NA))
   }
-  as.data.frame(res)
+  as.data.frame(res, stringsAsFactors = strings.as.factors)
 }
 
 shortenString = function(x, len, str.short="...") {

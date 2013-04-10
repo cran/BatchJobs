@@ -11,8 +11,10 @@
   \item{exit.code}{[\code{integer(1)}]\cr Exit code of the
   OS command, should not be 0.}
 
-  \item{output}{[\code{character(1)}]\cr Output of the OS
-  command, hopefully an informative error message.}
+  \item{output}{[\code{character}]\cr Output of the OS
+  command, hopefully an informative error message.  If
+  these are mutiple lines in a vector, they are
+  automatically pasted together.}
 }
 \value{
   [\code{\link{SubmitJobResult}}].

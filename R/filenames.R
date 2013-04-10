@@ -67,13 +67,11 @@ is.accessible = function(path) {
 }
 
 makePathAbsolute = function(path) {
-  if(substr(path, 1L, 1L) != "/")
-    path = normalizePath(path, mustWork=FALSE)
-  # FIXME: emulated winslash-behaviour for R < 2.13.x (?)
-  if (grepl("windows", getOperatingSystem(), ignore.case=TRUE))
-    path = gsub("\\", "/", path, fixed=TRUE)
+  if(substr(path, 1L, 1L) == "/")
+    return(path)
 
-  return(path)
+  # FIXME test this on windows
+  normalizePath(path, mustWork=FALSE, winslash = "/")
 }
 
 getJobDirs = function(reg, ids, unique=FALSE) {
@@ -126,6 +124,7 @@ getResourcesFilePath = function(reg, timestamp)
 getPendingDir = function(file.dir)
   file.path(file.dir, "pending")
 
+# FIXME: chnage name
 getSQLFileName = function(reg, type, id, char = getOrderCharacters()[type]) {
   file.path(getPendingDir(reg$file.dir), sprintf("pending_%s_%s_%i.sql", char, type, id))
 }

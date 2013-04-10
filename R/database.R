@@ -39,11 +39,13 @@ dbDoQueries = function(reg, queries, flags="ro", max.retries=200L, sleep=functio
       ok = as.character(ok)
       dbRollback(con)
       dbDisconnect(con)
-      if(!grepl("lock", tolower(ok), fixed=TRUE)) {
+      # catch known temporary errors:
+      # - database is still locked
+      # - disk I/O error
+      if(!grepl("(lock|i/o)", tolower(ok)))
         stopf("Error in dbDoQueries. Displaying only 1st query. %s (%s)", ok, queries[1L])
-      }
     }
-    # if we reach this here, DB was locked
+    # if we reach this here, DB was locked or temporary I/O error
     Sys.sleep(runif(1L, min=1, max=sleep(i)))
   }
   stopf("dbDoQueries: max retries (%i) reached, database is still locked!", max.retries)
@@ -57,7 +59,7 @@ dbDoQuery = function(reg, query, flags="ro", max.retries=200L, sleep=function(r)
     if (! is.error(res))
       return(res)
     res = as.character(res)
-    if(grepl("lock", tolower(res), fixed=TRUE)) {
+    if(grepl("(lock|i/o)", tolower(res))) {
       Sys.sleep(runif(1L, min=1, max=sleep(i)))
     } else {
       print(res)
@@ -71,7 +73,7 @@ dbDoQuery = function(reg, query, flags="ro", max.retries=200L, sleep=function(r)
 
 dbAddData = function(reg, tab, data) {
   query = sprintf("INSERT INTO %s_%s (%s) VALUES(%s)", reg$id, tab,
-                  collapse(colnames(data)), collapse(rep("?", ncol(data))))
+                  collapse(colnames(data)), collapse(rep.int("?", ncol(data))))
   con = dbConnectToJobsDB(reg, flags="rw")
   on.exit(dbDisconnect(con))
   dbBeginTransaction(con)
@@ -96,9 +98,6 @@ dbSelectWithIds = function(reg, query, ids, where=TRUE, group.by, limit, reorder
   res = dbDoQuery(reg, query)
   if(missing(ids) || !reorder)
     return(res)
-  # FIXME remove check on release
-  if ("job_id" %nin% names(res))
-    stop("Internal error: job_id not found")
   return(res[na.omit(match(ids, res$job_id)),, drop=FALSE])
 }
 
@@ -227,7 +226,7 @@ dbFindDone = function(reg, ids, negate=FALSE) {
 
 dbFindErrors = function(reg, ids, negate=FALSE) {
   query = sprintf("SELECT job_id FROM %s_job_status WHERE %s (error IS NOT NULL)", reg$id, if(negate) "NOT" else "")
-  dbSelectWithIds(reg, query, where=FALSE)$job_id
+  dbSelectWithIds(reg, query, ids, where=FALSE)$job_id
 }
 
 dbFindTerminated = function(reg, ids, negate=FALSE) {

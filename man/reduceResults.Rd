@@ -9,17 +9,17 @@
   reduceResults(reg, ids, part = NA_character_, fun, init,
     ...)
 
-  reduceResultsVector(reg, ids, part = NA_character_, fun,
+  reduceResultsList(reg, ids, part = NA_character_, fun,
     ..., use.names = TRUE)
 
-  reduceResultsList(reg, ids, part = NA_character_, fun,
+  reduceResultsVector(reg, ids, part = NA_character_, fun,
     ..., use.names = TRUE)
 
   reduceResultsMatrix(reg, ids, part = NA_character_, fun,
     ..., rows = TRUE, use.names = TRUE)
 
   reduceResultsDataFrame(reg, ids, part = NA_character_,
-    fun, ...,
+    fun, ..., use.names = TRUE,
     strings.as.factors = default.stringsAsFactors())
 }
 \arguments{

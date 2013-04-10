@@ -8,11 +8,11 @@
 \arguments{
   \item{reg}{[\code{\link{Registry}}]\cr Registry.}
 
-  \item{ids}{[\code{\link{matrix}}]\cr Vector of job ids.
+  \item{ids}{[\code{integer}]\cr Vector of job ids.
   Default is all jobs currently on the system.}
 
   \item{sleep}{[\code{numeric(1)}]\cr Seconds to sleep
-  between updates. Default is \code{10}.}
+  between status updates. Default is \code{10}.}
 
   \item{timeout}{[\code{numeric(1)}]\cr After waiting
   \code{timeout} seconds, show a message and return
@@ -22,13 +22,15 @@
   this to \code{Inf}.  Default is \code{604800} (one
   week).}
 
-  \item{stop.on.error}{[\code{logical(1)}]\cr Stop if a job
-  terminates with an error? Default is \code{FALSE}.}
+  \item{stop.on.error}{[\code{logical(1)}]\cr Immediatly
+  return if a job terminates with an error? Default is
+  \code{FALSE}.}
 }
 \value{
-  Returns \code{TRUE} on success and \code{FALSE} if either
-  \code{stop.on.error} is \code{TRUE} and an error occured
-  or the timeout is reached.
+  Returns \code{TRUE} if all jobs terminated and
+  \code{FALSE} if either \code{stop.on.error} is
+  \code{TRUE} and an error occured or the timeout is
+  reached.
 }
 \description{
   Waits for termination of jobs while displaying a progress

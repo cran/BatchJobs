@@ -44,16 +44,18 @@ assignConf = function(conf) {
 # reads package conf, userhome conf, working dir conf
 # then assigns them to namespace
 readConfs = function(path) {
-  # if we want to stay compatible with R 2.12 we cannot use
-  # public find.package without the dot
   fn.pack = file.path(path, "etc", "BatchJobs_global_config.R")
   fn.user = path.expand("~/.BatchJobs.R")
   fn.wd = suppressWarnings(normalizePath(".BatchJobs.R"))
   conffiles = Filter(file.exists, unique(c(fn.pack, fn.user, fn.wd)))
   if (length(conffiles) == 0L)
     stop("No configuation found at all. Not in package, not in user.home, not in work dir!")
-
-  assignConf(sourceConfFiles(conffiles))
+  
+  # really do this in 2 steps
+  # otherwise weird things might happen due to lazy eval combined with envirs
+  # and we might not see the error msg triggered in the checking of the config file
+  conf = sourceConfFiles(conffiles)
+  assignConf(conf)
 }
 
 assignConfDefaults = function() {
@@ -100,9 +102,11 @@ checkConf = function(conf) {
   ns2 = c("cluster.functions", "mail.start", "mail.done", "mail.error",
     "mail.from", "mail.to", "mail.control", "db.driver", "db.options",
     "default.resources", "debug", "raise.warnings", "staged.queries", "max.concurrent.jobs")
-  if (any(ns %nin% ns2))
-    stopf("You are only allowed to define the following R variables in your config file:\n%s",
-      collapse(ns2, sep=", "))
+  if (any(ns %nin% ns2)) {
+    ns3 = setdiff(ns, ns2)
+    stopf("You are only allowed to define the following R variables in your config file:\n%s\nBut you also had:\n%s",
+      collapse(ns2, sep=", "), collapse(ns3, sep=", "))
+    }
 }
 
 checkConfElements = function(cluster.functions, mail.to, mail.from,

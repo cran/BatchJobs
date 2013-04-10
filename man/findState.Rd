@@ -7,10 +7,12 @@
 \alias{findNotErrors}
 \alias{findNotOnSystem}
 \alias{findNotRunning}
+\alias{findNotStarted}
 \alias{findNotSubmitted}
 \alias{findNotTerminated}
 \alias{findOnSystem}
 \alias{findRunning}
+\alias{findStarted}
 \alias{findSubmitted}
 \alias{findTerminated}
 \title{Find jobs depending on computional state.}
@@ -40,6 +42,10 @@
   findRunning(reg, ids)
 
   findNotRunning(reg, ids)
+
+  findStarted(reg, ids)
+
+  findNotStarted(reg, ids)
 
   findExpired(reg, ids)
 }
@@ -86,6 +92,13 @@
   \code{findRunning}: Find jobs which are running.
 
   \code{findNotRunning}: Find jobs which are not running.
+
+  \code{findStarted}: Find jobs which have been started on
+  the batch system.
+
+  \code{findStarted}: Find jobs which have not been started
+  on the batch system. \code{findNotRunning}: Find jobs
+  which are not running.
 
   \code{findExpired}: Find jobs where walltime was probably
   hit. Right now the heuristic is as follows: Find all jobs

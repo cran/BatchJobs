@@ -18,16 +18,16 @@
 #' batchExpandGrid(reg, f, x=1:2, y=1:3)
 #' findJobs(reg, pars=(y > 2))
 findJobs = function(reg, ids, pars) {
-  checkRegistry(reg)
+  checkRegistry(reg, strict=TRUE)
   syncRegistry(reg)
   if (!missing(ids))
     ids = checkIds(reg, ids)
-  jobs = getJobs(reg, ids, check.ids=FALSE)
+  jobs = dbGetJobs(reg, ids)
 
   rename = function(pars) {
     ns = names(pars)
     if (is.null(ns)) {
-      ns = rep("", length(pars))
+      ns = rep.int("", length(pars))
     }
     j = which(is.na(ns) | ns == "")
     ns[j] = paste(".arg", seq_along(j), sep="")

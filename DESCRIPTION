@@ -11,33 +11,33 @@ URL: http://batchjobs.googlecode.com
 BugReports: http://code.google.com/p/batchjobs/issues/list
 MailingList: batchjobs@googlegroups.com
 License: BSD
-Depends: BBmisc (>= 1.1-166)
+Depends: R (>= 2.13.0), BBmisc (>= 1.1-166)
 Imports: utils, digest, DBI, RSQLite, sendmailR, brew, plyr
 Suggests: testthat
 LazyData: yes
 ByteCompile: yes
-Version: 1.0-915
-Encoding: UTF-8
+Version: 1.0-966
 Collate: 'addJob.R' 'applyJobFunction.R' 'batchApply.R'
-        'batchExpandGrid.R' 'batchMap.R' 'batchMapQuick.R'
+        'batchExpandGrid.R' 'batchMapQuick.R' 'batchMap.R'
         'batchMapResults.R' 'batchReduce.R' 'batchReduceResults.R'
         'buffer.R' 'callFunctionOnSSHWorkers.R' 'checkIdValid.R'
-        'clusterFunctions.R' 'clusterFunctionsHelpers.R'
-        'clusterFunctionsInteractive.R' 'clusterFunctionsLocal.R'
-        'clusterFunctionsLSF.R' 'clusterFunctionsMulticore.R'
+        'clusterFunctionsHelpers.R' 'clusterFunctionsInteractive.R'
+        'clusterFunctionsLocal.R' 'clusterFunctionsLSF.R'
+        'clusterFunctionsMulticore.R' 'clusterFunctions.R'
         'clusterFunctionsSGE.R' 'clusterFunctionsSSH.R'
         'clusterFunctionsTorque.R' 'clusterFunctionsUnitTests.R'
         'conf.R' 'database.R' 'debugMulticore.R' 'debugSSH.R' 'doJob.R'
         'filenames.R' 'filterResults.R' 'findJobs.R' 'findStatus.R'
-        'getErrors.R' 'getJob.R' 'getJobInfo.R' 'getLogFiles.R'
+        'getErrors.R' 'getJobInfo.R' 'getJob.R' 'getLogFiles.R'
         'getSSHWorkersInfo.R' 'grepLogs.R' 'helpers.R'
         'installPackagesOnSSHWorkers.R' 'Job.R' 'killJobs.R'
         'loadResult.R' 'loadResults.R' 'reduceResults.R' 'Registry.R'
         'resetJobs.R' 'Resources.R' 'scheduleWorkerJobs.R' 'sendMail.R'
         'setJobFunction.R' 'showClusterStatus.R' 'showLog.R'
-        'showStatus.R' 'submitJobs.R' 'syncRegistry.R' 'testJob.R'
-        'updateRegistry.R' 'waitForJobs.R' 'Worker.R' 'WorkerLinux.R'
-        'writeRscripts.R' 'zzz.R'
-Packaged: 2013-01-18 17:33:34 UTC; bischl
+        'showStatus.R' 'submitJobs.R' 'sweepRegistry.R'
+        'syncRegistry.R' 'testJob.R' 'updateRegistry.R' 'waitForJobs.R'
+        'WorkerLinux.R' 'Worker.R' 'writeRscripts.R' 'zzz.R'
+Packaged: 2013-04-10 18:02:12 UTC; bischl
+NeedsCompilation: no
 Repository: CRAN
-Date/Publication: 2013-01-18 18:53:22
+Date/Publication: 2013-04-10 20:18:36

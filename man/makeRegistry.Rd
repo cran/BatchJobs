@@ -5,7 +5,7 @@
 \usage{
   makeRegistry(id, file.dir, sharding = TRUE, work.dir,
     multiple.result.files = FALSE, seed,
-    packages = character(0L))
+    packages = character(0L), skip = TRUE)
 }
 \arguments{
   \item{id}{[\code{character(1)}]\cr Name of registry.
@@ -44,6 +44,10 @@
   \item{packages}{[\code{character}]\cr Packages that will
   always be loaded on each node.  Default is
   \code{character(0)}.}
+
+  \item{skip}{[\code{logical(1)}]\cr Skip creation of a new
+  registry if a registry is found in \code{file.dir}.
+  Defaults to \code{TRUE}.}
 }
 \value{
   [\code{\link{Registry}}]
