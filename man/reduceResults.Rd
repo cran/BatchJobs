@@ -10,16 +10,16 @@
     ...)
 
   reduceResultsList(reg, ids, part = NA_character_, fun,
-    ..., use.names = TRUE)
+    ..., use.names = "ids")
 
   reduceResultsVector(reg, ids, part = NA_character_, fun,
-    ..., use.names = TRUE)
+    ..., use.names = "ids")
 
   reduceResultsMatrix(reg, ids, part = NA_character_, fun,
-    ..., rows = TRUE, use.names = TRUE)
+    ..., rows = TRUE, use.names = "ids")
 
   reduceResultsDataFrame(reg, ids, part = NA_character_,
-    fun, ..., use.names = TRUE,
+    fun, ..., use.names = "ids",
     strings.as.factors = default.stringsAsFactors())
 }
 \arguments{
@@ -56,8 +56,10 @@
 
   \item{...}{[any]\cr Additional arguments to \code{fun}.}
 
-  \item{use.names}{[\code{logical(1)}]\cr Should the return
-  values be named?  Default is \code{TRUE}.}
+  \item{use.names}{[\code{character(1)}]\cr Name the
+  results with job ids (\dQuote{ids}), stored job names
+  (\dQuote{names}) or return a unnamed result
+  (\dQuote{none}).  Default is \code{ids}.}
 
   \item{rows}{[\code{logical(1)}]\cr Should the selected
   vectors be used as rows (or columns) in the result

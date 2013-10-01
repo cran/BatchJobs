@@ -19,22 +19,17 @@
 #' @param template.file [\code{character(1)}]\cr
 #'   Path to a brew template file that is used for the job file.
 #' @return [\code{\link{ClusterFunctions}}].
-#' @examples
-#' \dontrun{
-#' cluster.functions = makeClusterFunctionsSGE("~/mytemplate.tmpl")
-#' }
 #' @export
-#' @seealso \link{ClusterFunctions}
 makeClusterFunctionsSGE = function(template.file) {
   template = cfReadBrewTemplate(template.file)
 
-  submitJob = function(conf, reg, job.name, rscript, log.file, job.dir, resources) {
+  submitJob = function(conf, reg, job.name, rscript, log.file, job.dir, resources, arrayjobs) {
     outfile = cfBrewTemplate(conf, template, rscript, "job")
     # returns: "Your job 240933 (\"sleep 60\") has been submitted"
     res = runOSCommandLinux("qsub", outfile, stop.on.exit.code=FALSE)
     # FIXME filled queues
     if (res$exit.code > 0L) {
-      cfHandleUnkownSubmitError("qsub", res$exit.code, res$output)
+      cfHandleUnknownSubmitError("qsub", res$exit.code, res$output)
     } else {
       # collapse output strings and first number in string is batch.job.id
       batch.job.id = strextract(collapse(res$output, sep=" "), "\\d+")
@@ -61,5 +56,8 @@ makeClusterFunctionsSGE = function(template.file) {
     strextract(out, "\\d+")
   }
 
-  makeClusterFunctions(name="SGE", submitJob=submitJob, killJob=killJob, listJobs=listJobs)
+  getArrayEnvirName = function() "SGE_TASK_ID"
+
+  makeClusterFunctions(name="SGE", submitJob=submitJob, killJob=killJob,
+                       listJobs=listJobs, getArrayEnvirName = getArrayEnvirName)
 }

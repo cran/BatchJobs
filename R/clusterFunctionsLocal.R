@@ -1,29 +1,32 @@
-#' Create cluster functions for synchronous execution on local host.
+#' Create cluster functions for sequential execution on local host.
 #'
 #' All jobs executed under these cluster functions are executed
-#' synchronously, but in an independent, new R session.
+#' sequentially, but in an independent, new R session.
 #' That is, \code{submitJob} does not return until the
 #' job has finished. The main use of this \code{ClusterFunctions}
 #' implementation is to test and debug programs on a local computer.
 #'
-#' Both killing and listing jobs is not supported by this
-#' implementation since at any one time there can be only one running
-#' job and while it is running, the master R process is blocked.
+#' Listing jobs returns an empty vector (as no jobs can be running when you call this)
+#' and \code{killJob} returns at once (for the same reason).
 #'
 #' @return [\code{\link{ClusterFunctions}}].
-#' @examples
-#' \dontrun{
-#' cluster.functions = makeClusterFunctionsLocal()
-#' }
 #' @export
-#' @seealso \link{ClusterFunctions}
 makeClusterFunctionsLocal = function() {
-  submitJob = function(conf, reg, job.name, rscript, log.file, job.dir, resources) {
-    # nothing should be on all 3 streams except maybe a segfault. throw away.
-    cmd = sprintf("%s CMD BATCH --no-save --no-restore '%s' '%s' > /dev/null 2> /dev/null < /dev/null",
-      file.path(R.home("bin"), "R"), rscript, log.file)
-    system(cmd, intern=TRUE, wait=TRUE)
+  submitJob = function(conf, reg, job.name, rscript, log.file, job.dir, resources, arrayjobs) {
+    system2(command=file.path(R.home("bin"), "Rscript"), 
+            args=rscript, 
+            stdout=log.file, 
+            stderr=log.file, 
+            wait=TRUE)
     makeSubmitJobResult(status=0L, batch.job.id="cfLocal")
   }
-  makeClusterFunctions(name="Local", submitJob=submitJob, killJob=NULL, listJobs=NULL)
+
+  killJob = function(conf, reg, batch.job.id) NULL
+
+  listJobs = function(conf, reg) integer(0L)
+
+  getArrayEnvirName = function() NA_character_
+
+  makeClusterFunctions(name="Local", submitJob=submitJob, killJob=killJob,
+                       listJobs=listJobs, getArrayEnvirName=getArrayEnvirName)
 }

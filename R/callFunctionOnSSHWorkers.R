@@ -59,10 +59,10 @@ callFunctionOnSSHWorkers = function(nodenames, fun, ...,
   if (!consecutive && show.output)
     stop("show.output=TRUE can only be used in consecutive mode.")
 
-  conf = BatchJobs:::getBatchJobsConf()
+  conf = getBatchJobsConf()
   cf = conf$cluster.functions
   mail.old = c(conf$mail.start, conf$mail.done, conf$mail.error)
-  if (cf$name !=  "SSH")
+  if (cf$name != "SSH")
     stop("callFunctionOnSSHWorkers can only be used in SSH mode!")
   # create dummy registry, we submit our command from this
   regid = sprintf("BatchJobs_callFunctionOnSSHWorkers_%i", as.integer(Sys.time()))
@@ -71,9 +71,9 @@ callFunctionOnSSHWorkers = function(nodenames, fun, ...,
   # also kill all still running jobs and remove reg dir
   on.exit({
     conf$cluster.functions = cf
-    conf$mail.start = mail.old[1]
-    conf$mail.done = mail.old[2]
-    conf$mail.error = mail.old[3]
+    conf$mail.start = mail.old[1L]
+    conf$mail.done = mail.old[2L]
+    conf$mail.error = mail.old[3L]
   })
   # no mails during for the following jobs, also get the nodenames ssh workers
   conf$mail.start = conf$mail.done = conf$mail.error = "none"
@@ -114,7 +114,7 @@ callFunctionOnSSHWorkers = function(nodenames, fun, ...,
     }, args, more.args = more.args)
   })
   on.exit({
-    if (length(findOnSystem(reg)) > 0)
+    if (length(findOnSystem(reg)) > 0L)
       killJobs(reg, getJobIds(reg))
     if (file.exists(regdir))
       unlink(regdir, recursive=TRUE)
@@ -123,20 +123,20 @@ callFunctionOnSSHWorkers = function(nodenames, fun, ...,
   printLog = function(log.old) {
     log.fn = getLogFiles(reg, 1L)
     log.new = readChar(log.fn, file.info(log.fn)$size)
-    j = gregexpr("###logstart###", log.new)[[1]][1]
+    j = gregexpr("###logstart###", log.new)[[1L]][1L]
     if (j == -1) {
       # start not found
       log.new = ""
     } else {
       # start found, clip
       log.new = substr(log.new, j+15, nchar(log.new))
-      j = gregexpr("###logend###", log.new)[[1]][1]
-      if (j != -1) {
+      j = gregexpr("###logend###", log.new)[[1L]][1L]
+      if (j != -1L) {
         # end found, clip
-        log.new = substr(log.new, 1, j-7)
+        log.new = substr(log.new, 1L, j-7L)
       }
     }
-    cat(substr(log.new, nchar(log.old)+1, nchar(log.new)))
+    cat(substr(log.new, nchar(log.old)+1L, nchar(log.new)))
     log.new
   }
 
@@ -164,9 +164,9 @@ callFunctionOnSSHWorkers = function(nodenames, fun, ...,
   # if error, throw it on master
   checkJobErrors = function(reg, nodenames) {
     errids = findErrors(reg)
-    if (length(errids) > 0) {
+    if (length(errids) > 0L) {
       j = errids[1L]
-      stopf("Error on %s: %s", nodenames[j], getErrors(reg, j))
+      stopf("Error on %s: %s", nodenames[j], getErrorMessages(reg, j))
     }
   }
 

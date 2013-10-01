@@ -33,6 +33,6 @@
   Searches for occurence of \code{pattern} in log files.
 }
 \seealso{
-  \code{\link{showLog}}, \code{\link{getErrors}}
+  \code{\link{showLog}}, \code{\link{getErrorMessages}}
 }
 

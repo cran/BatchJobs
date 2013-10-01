@@ -18,19 +18,14 @@
 #' \url{http://code.google.com/p/batchjobs/source/browse/trunk/BatchJobs/examples/cfTorque/lido.tmpl}
 #' in the package repository on its homepage.
 #'
-#'   Path to a brew template file that is used for the PBS job file.
 #' @param template.file [\code{character(1)}]\cr
+#'   Path to a brew template file that is used for the PBS job file.
 #' @return [\code{\link{ClusterFunctions}}].
-#' @examples
-#' \dontrun{
-#' cluster.functions = makeClusterFunctionsTorque("~/mytemplate.tmpl")
-#' }
 #' @export
-#' @seealso \link{ClusterFunctions}
 makeClusterFunctionsTorque = function(template.file) {
   template = cfReadBrewTemplate(template.file)
 
-  submitJob = function(conf, reg, job.name, rscript, log.file, job.dir, resources) {
+  submitJob = function(conf, reg, job.name, rscript, log.file, job.dir, resources, arrayjobs) {
     outfile = cfBrewTemplate(conf, template, rscript, "pbs")
     res = runOSCommandLinux("qsub", outfile, stop.on.exit.code=FALSE)
 
@@ -39,7 +34,7 @@ makeClusterFunctionsTorque = function(template.file) {
     if (grepl(max.jobs.msg, output, fixed=TRUE)) {
       makeSubmitJobResult(status=1L, batch.job.id=NA_character_, msg=max.jobs.msg)
     } else if (res$exit.code > 0L) {
-      cfHandleUnkownSubmitError("qsub", res$exit.code, res$output)
+      cfHandleUnknownSubmitError("qsub", res$exit.code, res$output)
     } else {
       makeSubmitJobResult(status=0L, batch.job.id=trim(output))
     }
@@ -54,5 +49,8 @@ makeClusterFunctionsTorque = function(template.file) {
     runOSCommandLinux("qselect", "-u $USER")$output
   }
 
-  makeClusterFunctions(name="Torque", submitJob=submitJob, killJob=killJob, listJobs=listJobs)
+  getArrayEnvirName = function() "PBS_ARRAYID"
+
+  makeClusterFunctions(name="Torque", submitJob=submitJob, killJob=killJob,
+                       listJobs=listJobs, getArrayEnvirName = getArrayEnvirName)
 }

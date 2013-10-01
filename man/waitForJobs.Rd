@@ -27,10 +27,9 @@
   \code{FALSE}.}
 }
 \value{
-  Returns \code{TRUE} if all jobs terminated and
-  \code{FALSE} if either \code{stop.on.error} is
-  \code{TRUE} and an error occured or the timeout is
-  reached.
+  Returns \code{TRUE} if all jobs terminated successfully
+  and \code{FALSE} if either an error occured or the
+  timeout is reached.
 }
 \description{
   Waits for termination of jobs while displaying a progress

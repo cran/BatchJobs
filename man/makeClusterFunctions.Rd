@@ -4,7 +4,7 @@
 \title{Create a ClusterFuntions object.}
 \usage{
   makeClusterFunctions(name, submitJob, killJob, listJobs,
-    class = NULL, ...)
+    getArrayEnvirName, class = NULL, ...)
 }
 \arguments{
   \item{name}{[\code{character(1)}]\cr Name of cluster
@@ -51,6 +51,10 @@
   registry.\cr Set \code{listJobs} to \code{NULL} if
   listing jobs cannot be supported.}
 
+  \item{getArrayEnvirName}{[\code{function()}]\cr Returns
+  the name of the environment variable specifying the array
+  ID.  Should return \code{NA} if not supported.}
+
   \item{class}{[\code{character(1)}]\cr Optional class name
   for cluster functions object.  Useful to provide a nice
   print method which might show additional information
@@ -69,6 +73,7 @@
   \code{\link{makeClusterFunctionsMulticore}},
   \code{\link{makeClusterFunctionsSSH}},
   \code{\link{makeClusterFunctionsTorque}},
-  \code{\link{makeClusterFunctionsSGE}}
+  \code{\link{makeClusterFunctionsSGE}},
+  \code{\link{makeClusterFunctionsSLURM}}
 }
 

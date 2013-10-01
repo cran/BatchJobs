@@ -1,4 +1,4 @@
-makeRegistryInternal = function(id, file.dir, sharding, work.dir, multiple.result.files, seed, packages) {
+makeRegistryInternal = function(id, file.dir, sharding, work.dir, multiple.result.files, seed, packages, src.dirs=character(0L)) {
   checkArg(id, cl = "character", len = 1L, na.ok = FALSE)
   checkIdValid(id, allow.minus=FALSE)
   checkArg(file.dir, cl = "character", len = 1L, na.ok = FALSE)
@@ -17,6 +17,8 @@ makeRegistryInternal = function(id, file.dir, sharding, work.dir, multiple.resul
   checkArg(packages, cl = "character", na.ok = FALSE)
   packages = union(packages, "BatchJobs")
   requirePackages(packages, stop=TRUE, suppress.warnings=TRUE)
+  checkArg(src.dirs, cl = "character", na.ok = FALSE)
+  sourceRegistryFilesInternal(work.dir, src.dirs, .GlobalEnv)
 
   # make paths absolute to be sure. otherwise cfSSH wont work for example
   checkDir(file.dir, create=TRUE, check.empty=TRUE, check.posix=TRUE, msg=TRUE)
@@ -27,6 +29,7 @@ makeRegistryInternal = function(id, file.dir, sharding, work.dir, multiple.resul
   checkDir(fun.dir, create=TRUE, check.empty=TRUE)
   checkDir(getResourcesDir(file.dir), create=TRUE, check.empty=TRUE)
   checkDir(getPendingDir(file.dir), create=TRUE, check.empty=TRUE)
+  checkDir(getExportDir(file.dir), create=TRUE, check.empty=TRUE)
   checkDir(work.dir, check.posix=TRUE)
   work.dir = makePathAbsolute(work.dir)
 
@@ -42,6 +45,7 @@ makeRegistryInternal = function(id, file.dir, sharding, work.dir, multiple.resul
     file.dir = file.dir,
     sharding = sharding,
     work.dir = work.dir,
+    src.dirs = src.dirs,
     multiple.result.files = multiple.result.files,
     packages = packages[order(names(packages))]
   ), "Registry")
@@ -82,6 +86,13 @@ makeRegistryInternal = function(id, file.dir, sharding, work.dir, multiple.resul
 #' @param packages [\code{character}]\cr
 #'   Packages that will always be loaded on each node.
 #'   Default is \code{character(0)}.
+#' @param src.dirs [\code{character}]\cr
+#'   Directories relative to your \code{work.dir} containing R scripts 
+#'   to be sourced on registry load (both on slave and master).
+#'   Files not matching the pattern \dQuote{\\.[Rr]$} are ignored.
+#'   Useful if you have many helper functions that are needed during the execution of your jobs.
+#'   These files should only contain function definitions and no executable code.
+#'   Default is \code{character(0)}.
 #' @param skip [\code{logical(1)}]\cr
 #'   Skip creation of a new registry if a registry is found in \code{file.dir}.
 #'   Defaults to \code{TRUE}.
@@ -92,14 +103,14 @@ makeRegistryInternal = function(id, file.dir, sharding, work.dir, multiple.resul
 #' reg <- makeRegistry(id="BatchJobsExample", file.dir=tempfile(), seed=123)
 #' print(reg)
 makeRegistry = function(id, file.dir, sharding=TRUE, work.dir, multiple.result.files = FALSE,
-                        seed, packages=character(0L), skip = TRUE) {
+                        seed, packages=character(0L), src.dirs=character(0L), skip = TRUE) {
   if (missing(file.dir))
     file.dir = file.path(getwd(), paste(id, "files", sep="-"))
   checkArg(skip, "logical", len=1L, na.ok=FALSE)
   if (skip && isRegistryDir(file.dir))
     return(loadRegistry(file.dir = file.dir))
 
-  reg = makeRegistryInternal(id, file.dir, sharding, work.dir, multiple.result.files, seed, packages)
+  reg = makeRegistryInternal(id, file.dir, sharding, work.dir, multiple.result.files, seed, packages, src.dirs)
 
   dbCreateJobStatusTable(reg)
   dbCreateJobDefTable(reg)
@@ -123,7 +134,6 @@ print.Registry = function(x, ...) {
 #'   Location of the file.dir to load the registry from.
 #' @param work.dir [\code{character(1)}]\cr
 #'   Location of the work. Unchanged if missing.
-#'   Note that the registry is not safed unless you set \code{save} to \code{TRUE}!
 #' @return [\code{\link{Registry}}].
 #' @export
 loadRegistry = function(file.dir, work.dir) {
@@ -147,7 +157,12 @@ loadRegistry = function(file.dir, work.dir) {
 
     if (!isFALSE(adjusted) || !isFALSE(updated))
       saveRegistry(reg)
+  } else {
+    loadExports(reg)
   }
+  
+  sourceRegistryFilesInternal(reg$work.dir, reg$src.dirs)
+
   return(reg)
 }
 

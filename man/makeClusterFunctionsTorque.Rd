@@ -5,7 +5,8 @@
   makeClusterFunctionsTorque(template.file)
 }
 \arguments{
-  \item{template.file}{[\code{character(1)}]\cr}
+  \item{template.file}{[\code{character(1)}]\cr Path to a
+  brew template file that is used for the PBS job file.}
 }
 \value{
   [\code{\link{ClusterFunctions}}].
@@ -30,16 +31,5 @@
   and a more complex one here
   \url{http://code.google.com/p/batchjobs/source/browse/trunk/BatchJobs/examples/cfTorque/lido.tmpl}
   in the package repository on its homepage.
-
-  Path to a brew template file that is used for the PBS job
-  file.
-}
-\examples{
-\dontrun{
-cluster.functions = makeClusterFunctionsTorque("~/mytemplate.tmpl")
-}
-}
-\seealso{
-  \link{ClusterFunctions}
 }
 

@@ -37,6 +37,6 @@
   new log file with a supported pager.
 }
 \seealso{
-  \code{\link{grepLogs}}, \code{\link{getErrors}}
+  \code{\link{grepLogs}}, \code{\link{getErrorMessages}}
 }
 

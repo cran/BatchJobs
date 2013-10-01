@@ -1,4 +1,8 @@
 #' Use multiple cores on local Linux machine to spawn parallel jobs.
+#' 
+#' Jobs are spawned by starting multiple R sessions on the commandline
+#' (similar like on true batch systems). 
+#' Packages \code{parallel} or \code{multicore} are not used in any way.
 #'
 #' @param ncpus [\code{integers(1)}]\cr
 #'   Number of VPUs of worker.
@@ -27,19 +31,14 @@
 #'   \url{http://code.google.com/p/batchjobs/source/browse/trunk/BatchJobs/skel/inst/bin/linux-helper}
 #'   Default means to take it from package directory.
 #' @return [\code{\link{ClusterFunctions}}].
-#' @examples
-#' \dontrun{
-#' cluster.functions = makeClusterFunctionsMulticore(4)
-#' }
 #' @export
-#' @seealso \link{ClusterFunctions}
 makeClusterFunctionsMulticore = function(ncpus, max.jobs, max.load, nice,
   r.options=c("--no-save", "--no-restore", "--no-init-file", "--no-site-file"), script) {
 
   worker = makeWorkerLocalLinux(r.options, script, ncpus, max.jobs, max.load, nice)
   workers = list(localhost=worker)
 
-  submitJob = function(conf, reg, job.name, rscript, log.file, job.dir, resources) {
+  submitJob = function(conf, reg, job.name, rscript, log.file, job.dir, resources, arrayjobs) {
     updateWorker(worker, reg$file.dir, tdiff=0L)
     s = worker$available
     if (s != "A") {
@@ -61,5 +60,8 @@ makeClusterFunctionsMulticore = function(ncpus, max.jobs, max.load, nice,
     listWorkerJobs(worker, reg$file.dir)
   }
 
-  makeClusterFunctions("Multicore", submitJob=submitJob, killJob=killJob, listJobs=listJobs)
+  getArrayEnvirName = function() NA_character_
+
+  makeClusterFunctions(name="Multicore", submitJob=submitJob, killJob=killJob,
+                       listJobs=listJobs, getArrayEnvirName=getArrayEnvirName)
 }

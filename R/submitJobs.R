@@ -30,6 +30,11 @@
 #'   (like filled queues). Each time \code{wait} is called to wait a certain
 #'   number of seconds.
 #'   Default is 10 times.
+# FIXME reenable if we support array jobs officially   
+# @param chunks.as.arrayjobs [\code{logical(1)}]\cr
+#   If ids are passed as a list of chunked job ids, execute jobs in a chunk
+#   as array jobs. Note that your scheduler and your template must be adjusted to
+#   use this option. Default is \code{FALSE}.
 #' @param job.delay [\code{function(n, i)} or \code{logical(1)}]\cr
 #'   Function that defines how many seconds a job should be delayed before it starts.
 #'   This is an expert option and only necessary to change when you want submit
@@ -51,6 +56,9 @@
 #' chunked = chunk(getJobIds(reg), n.chunks=2, shuffle=TRUE)
 #' submitJobs(reg, chunked)
 submitJobs = function(reg, ids, resources=list(), wait, max.retries=10L, job.delay=FALSE) {
+  
+  chunks.as.arrayjobs = FALSE
+  
   ### helper function to calculate the delay
   getDelays = function(cf, job.delay, n) {
     if (is.logical(job.delay)) {
@@ -108,6 +116,12 @@ submitJobs = function(reg, ids, resources=list(), wait, max.retries=10L, job.del
     checkArg(max.retries, "integer", len=1L, na.ok=FALSE)
   }
 
+  checkArg(chunks.as.arrayjobs, "logical", na.ok = FALSE)
+  if (chunks.as.arrayjobs && is.na(cf$getArrayEnvirName())) {
+    warningf("Cluster functions '%s' do not support array jobs, falling back on chunks", cf$name)
+    chunks.as.arrayjobs = FALSE
+  }
+
   if (!is.null(cf$listJobs)) {
     ### check for running jobs
     ids.intersect = intersect(unlist(ids), dbFindOnSystem(reg, unlist(ids)))
@@ -144,57 +158,66 @@ submitJobs = function(reg, ids, resources=list(), wait, max.retries=10L, job.del
   submit.msgs = buffer("list", 1000L, dbSendMessages,
                        reg=reg, max.retries=10000L, sleep=function(r) 5,
                        staged=useStagedQueries())
+  logger = makeSimpleFileLogger(file.path(reg$file.dir, "submit.log"), touch = FALSE, keep = 1L)
 
   ### set on exit handler to avoid inconsistencies caused by user interrupts
   on.exit({
     # we need the second case for errors in brew (e.g. resources)
     if(interrupted && exists("batch.result", inherits=FALSE)) {
-      submit.msgs$push(dbMakeMessageSubmitted(reg, id, time=now(),
+      submit.msgs$push(dbMakeMessageSubmitted(reg, id, time=submit.time,
         batch.job.id=batch.result$batch.job.id, first.job.in.chunk.id = if(is.chunked) id1 else NULL,
         resources.timestamp=resources.timestamp))
     }
     # send remaining msgs now
     messagef("Sending %i submit messages...\nMight take some time, do not interrupt this!", submit.msgs$pos())
     submit.msgs$clear()
+
+    # message the existance of the log file
+    if (logger$getSize())
+      messagef("%i temporary submit errors logged to file '%s'.\nFirst message: %s",
+               logger$getSize(), logger$getLogfile(), logger$getMessages(1L))
   })
 
   ### write R scripts
   messagef("Writing %i R scripts...", n)
   resources.timestamp = saveResources(reg, resources)
-  writeRscripts(reg, ids, resources.timestamp, disable.mail=FALSE, delays=getDelays(cf, job.delay, n),
-               interactive.test = !is.null(conf$interactive))
+  writeRscripts(reg, cf, ids, chunks.as.arrayjobs, resources.timestamp, disable.mail=FALSE,
+                delays=getDelays(cf, job.delay, n), interactive.test = !is.null(conf$interactive))
 
   ### reset status of jobs: delete errors, done, ...
   dbSendMessage(reg, dbMakeMessageKilled(reg, unlist(ids)), staged=FALSE)
 
 
   ### initialize progress bar
-  bar = makeProgressBar(max=n, label="submitJobs               ")
+  bar = makeProgressBar(max=n, label="SubmitJobs")
   bar$set()
 
+  # FIXME add a message about where to find log files
   tryCatch({
     for (id in ids) {
       id1 = id[1L]
       retries = 0L
 
-      repeat { # max.retires max be Inf
+      repeat { # max.retries max be Inf
         if (limit.concurrent.jobs && length(cf$listJobs(conf, reg)) >= conf$max.concurrent.jobs) {
           # emulate a temporary erroneous batch result
           batch.result = makeSubmitJobResult(status=10L, batch.job.id=NA_character_, "Max concurrent jobs exhausted")
         } else {
           # try to submit the job
           interrupted = TRUE
+          submit.time = now()
           batch.result = cf$submitJob(conf=conf, reg=reg,
                                       job.name=sprintf("%s-%i", reg$id, id1),
                                       rscript=getRScriptFilePath(reg, id1),
                                       log.file=getLogFilePath(reg, id1),
                                       job.dir=getJobDirs(reg, id1),
-                                      resources=resources)
+                                      resources=resources,
+                                      arrayjobs=if(chunks.as.arrayjobs) length(id) else 1L)
         }
 
         ### validate status returned from cluster functions
         if (batch.result$status == 0L) {
-          submit.msgs$push(dbMakeMessageSubmitted(reg, id, time=now(),
+          submit.msgs$push(dbMakeMessageSubmitted(reg, id, time=submit.time,
                                                   batch.job.id=batch.result$batch.job.id, first.job.in.chunk.id = if(is.chunked) id1 else NULL,
                                                   resources.timestamp=resources.timestamp))
           interrupted = FALSE
@@ -206,28 +229,16 @@ submitJobs = function(reg, ids, resources=list(), wait, max.retries=10L, job.del
         interrupted = FALSE
 
         if (batch.result$status > 0L && batch.result$status <= 100L) {
+          if (is.finite(max.retries) && retries > max.retries)
+            stopf("Retried already %i times to submit. Aborting.", max.retries)
+
           # temp error, wait and increase retries, then submit again in next iteration
-          sleep.secs = wait(retries)
+          Sys.sleep(wait(retries))
+
+          # log message to file
+          logger$log(batch.result$msg)
 
           retries = retries + 1L
-          if (retries > max.retries)
-            stopf("Retried already %i times to submit. Aborting.", retries)
-
-
-          # FIXME we could use the sleep here for synchronization
-          bar$inc(msg=sprintf("Status: %i, zzz=%.1fs", batch.result$status, sleep.secs))
-          # FIXME: the next lines are an ugly hack and should be moved to bbmisc
-          Sys.sleep(sleep.secs/2)
-          pbw = getOption("BBmisc.ProgressBar.width", getOption("width"))
-          labw = environment(bar$set)$label.width
-          lab = sprintf(sprintf("%%%is", labw),
-            sprintf("Status: %i, zzz=%.1fs", batch.result$status, sleep.secs))
-          cat(paste(rep.int("\b \b", pbw-5), collapse=""))
-          bmrmsg = batch.result$msg
-          msgline = sprintf("%s msg=%s", lab, bmrmsg)
-          cat(msgline)
-          Sys.sleep(sleep.secs/2)
-          cat(paste(rep.int("\b \b", nchar(msgline)), collapse=""))
         } else if (batch.result$status > 100L && batch.result$status <= 200L) {
           # fatal error, abort at once
           stopf("Fatal error occured: %i. %s", batch.result$status, batch.result$msg)

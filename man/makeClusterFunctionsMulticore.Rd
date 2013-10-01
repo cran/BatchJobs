@@ -45,15 +45,9 @@
   [\code{\link{ClusterFunctions}}].
 }
 \description{
-  Use multiple cores on local Linux machine to spawn
-  parallel jobs.
-}
-\examples{
-\dontrun{
-cluster.functions = makeClusterFunctionsMulticore(4)
-}
-}
-\seealso{
-  \link{ClusterFunctions}
+  Jobs are spawned by starting multiple R sessions on the
+  commandline (similar like on true batch systems).
+  Packages \code{parallel} or \code{multicore} are not used
+  in any way.
 }
 

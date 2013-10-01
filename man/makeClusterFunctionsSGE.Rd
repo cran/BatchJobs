@@ -30,12 +30,4 @@
   \url{http://code.google.com/p/batchjobs/source/browse/trunk/BatchJobs/examples/cfSGE/simple.tmpl}
   in the package repository on its homepage.
 }
-\examples{
-\dontrun{
-cluster.functions = makeClusterFunctionsSGE("~/mytemplate.tmpl")
-}
-}
-\seealso{
-  \link{ClusterFunctions}
-}
 

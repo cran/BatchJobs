@@ -2,7 +2,7 @@
 \alias{findJobs}
 \title{Finds ids of jobs that match a query.}
 \usage{
-  findJobs(reg, ids, pars)
+  findJobs(reg, ids, pars, jobnames)
 }
 \arguments{
   \item{reg}{[\code{\link{Registry}}]\cr Registry.}
@@ -16,6 +16,9 @@
   vectors.  If you forgot to do this you can use
   \code{.arg1}, \code{.arg2}, etc., to refer to the the
   unnamed ones.}
+
+  \item{jobnames}{[\code{character}]\cr Restrict to jobs
+  with stored names. Exact matching is used.}
 }
 \value{
   [\code{integer}]. Ids for jobs which match the query.

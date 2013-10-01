@@ -3,8 +3,9 @@
 \title{Combination of makeRegistry, batchMap and submitJobs.}
 \usage{
   batchMapQuick(fun, ..., more.args = list(),
-    packages = character(0L), chunk.size, n.chunks, inds,
-    resources = list(), temporary = FALSE)
+    packages = character(0L), chunk.size, n.chunks,
+    chunks.as.arrayjobs = FALSE, inds, resources = list(),
+    temporary = FALSE)
 }
 \arguments{
   \item{fun}{[\code{function}]\cr Function to map over
@@ -31,6 +32,9 @@
   \code{chunk.size}.  Note that the ids will get shuffled
   to balance out possible run time differences.  Default is
   not to use chunking.}
+
+  \item{chunks.as.arrayjobs}{[\code{logical(1)}]\cr Submit
+  chunks as array jobs?  Default is \code{FALSE}.}
 
   \item{inds}{[\code{integer}]\cr Indices of ids / chunks
   to submit.  Default is all.}

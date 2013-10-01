@@ -3,7 +3,8 @@
 \title{Loads result files for id vector.}
 \usage{
   loadResults(reg, ids, part = NA_character_,
-    simplify = FALSE, use.names = TRUE)
+    simplify = FALSE, use.names = "ids",
+    missing.ok = FALSE)
 }
 \arguments{
   \item{reg}{[\code{\link{Registry}}]\cr Registry.}
@@ -20,9 +21,15 @@
   be simplified to a vector, matrix or higher dimensional
   array if possible?  Default is \code{TRUE}.}
 
-  \item{use.names}{[\code{logical(1)}]\cr Should the
-  returned list be named with the ids?  Default is
-  \code{TRUE}.}
+  \item{use.names}{[\code{character(1)}]\cr Name the
+  results with job ids (\dQuote{ids}), stored job names
+  (\dQuote{names}) or return a unnamed result
+  (\dQuote{none}).  Default is \code{ids}.}
+
+  \item{missing.ok}{[\code{logical(1)}]\cr If \code{FALSE}
+  an error is thrown if the results are not found.
+  Otherwise missing results are imputed to \code{NULL}.
+  Default is \code{FALSE}.}
 }
 \value{
   [\code{list}]. Results of jobs as list, possibly named by

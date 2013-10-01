@@ -6,12 +6,17 @@
 }
 \arguments{
   \item{conffile}{[\code{character(1)}]\cr Location of the
-  configuration file to load.}
+  configuration file to load.  Default is
+  \dQuote{.BatchJobs.conf} in the current working
+  directory.}
 }
 \value{
-  Nothing.
+  Invisibly returns a list of configuration settings.
 }
 \description{
   Load a specific configuration file.
+}
+\seealso{
+  \code{\link{getConfig}}, \code{\link{setConfig}}
 }
 

@@ -16,20 +16,10 @@
 #' \url{http://code.google.com/p/batchjobs/source/browse/trunk/BatchJobs/examples/cfLSF/simple.tmpl}
 #' in the package repository on its homepage.
 #'
-#' The following variables are accessible in the template file:
-#' a) all argu
-#'
-#'
-#'
 #' @param template.file [\code{character(1)}]\cr
 #'   Path to a brew template file that is used for the job file.
 #' @return [\code{\link{ClusterFunctions}}].
-#' @examples
-#' \dontrun{
-#' cluster.functions = makeClusterFunctionsLSF("~/mytemplate.tmpl")
-#' }
 #' @export
-#' @seealso \link{ClusterFunctions}
 makeClusterFunctionsLSF = function(template.file) {
   template = cfReadBrewTemplate(template.file)
   # When LSB_BJOBS_CONSISTENT_EXIT_CODE=Y, the bjobs command exits with 0 only
@@ -37,13 +27,13 @@ makeClusterFunctionsLSF = function(template.file) {
   # or a non-existent job ID is entered.
   Sys.setenv(LSB_BJOBS_CONSISTENT_EXIT_CODE="Y")
 
-  submitJob = function(conf, reg, job.name, rscript, log.file, job.dir, resources) {
+  submitJob = function(conf, reg, job.name, rscript, log.file, job.dir, resources, arrayjobs) {
     outfile = cfBrewTemplate(conf, template, rscript, "job")
     # returns: "Job <128952> is submitted to default queue <s_amd>."
     res = runOSCommandLinux("bsub", stdin=outfile, stop.on.exit.code=FALSE)
     # FIXME filled queues
     if (res$exit.code > 0L) {
-      cfHandleUnkownSubmitError("bsub", res$exit.code, res$output)
+      cfHandleUnknownSubmitError("bsub", res$exit.code, res$output)
     } else {
       # collapse output strings and first number in string is batch.job.id
       batch.job.id = strextract(collapse(res$output, sep=" "), "\\d+")
@@ -70,5 +60,8 @@ makeClusterFunctionsLSF = function(template.file) {
     strextract(out, "\\d+")
   }
 
-  makeClusterFunctions(name="LSF", submitJob=submitJob, killJob=killJob, listJobs=listJobs)
+  getArrayEnvirName = function() "LSB_JOBINDEX"
+
+  makeClusterFunctions(name="LSF", submitJob=submitJob, killJob=killJob,
+                       listJobs=listJobs, getArrayEnvirName = getArrayEnvirName)
 }

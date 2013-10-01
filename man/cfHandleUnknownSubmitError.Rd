@@ -1,8 +1,8 @@
-\name{cfHandleUnkownSubmitError}
-\alias{cfHandleUnkownSubmitError}
+\name{cfHandleUnknownSubmitError}
+\alias{cfHandleUnknownSubmitError}
 \title{Cluster functions helper: Handle an unknown error during job submission.}
 \usage{
-  cfHandleUnkownSubmitError(cmd, exit.code, output)
+  cfHandleUnknownSubmitError(cmd, exit.code, output)
 }
 \arguments{
   \item{cmd}{[\code{character(1)}]\cr OS command used to

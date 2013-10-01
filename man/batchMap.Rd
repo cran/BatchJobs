@@ -2,7 +2,8 @@
 \alias{batchMap}
 \title{Maps a function over lists or vectors, adding jobs to a registry.}
 \usage{
-  batchMap(reg, fun, ..., more.args = list())
+  batchMap(reg, fun, ..., more.args = list(),
+    use.names = FALSE)
 }
 \arguments{
   \item{reg}{[\code{\link{Registry}}]\cr Empty Registry
@@ -16,6 +17,11 @@
 
   \item{more.args}{[\code{list}]\cr A list of other
   arguments passed to \code{fun}.  Default is empty list.}
+
+  \item{use.names}{[\code{logical(1)}]\cr Store parameter
+  names to enable named results in
+  \code{\link{loadResults}} and some other functions.
+  Default is \code{FALSE}.}
 }
 \value{
   Vector of type \code{integer} with job ids.

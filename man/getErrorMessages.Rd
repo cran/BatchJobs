@@ -1,22 +1,18 @@
-\name{getErrors}
-\alias{getErrors}
+\name{getErrorMessages}
+\alias{getErrorMessages}
 \title{Get error messages of jobs.}
 \usage{
-  getErrors(reg, ids, print = TRUE)
+  getErrorMessages(reg, ids)
 }
 \arguments{
   \item{reg}{[\code{\link{Registry}}]\cr Registry.}
 
   \item{ids}{[\code{integer}]\cr Ids of jobs.  Default is
-  all jobs.}
-
-  \item{print}{[\code{logical(1)}]\cr Print error messages?
-  Default is \code{TRUE}.}
+  all jobs with errors.}
 }
 \value{
   [\code{character}]. Error messages for jobs as character
-  vector invisibly returned.\cr \code{NA} if job has
-  terminated successfully.
+  vector\cr \code{NA} if job has terminated successfully.
 }
 \description{
   Get error messages of jobs.

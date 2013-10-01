@@ -20,10 +20,10 @@ checkDir = function(path, create=FALSE, check.empty=FALSE, check.posix=FALSE, ms
   if (check.empty && any(list.files(path, all.files=TRUE) %nin% c(".", "..")))
     stopf("Directory '%s' does not seem to be empty!", path)
 
-  if (check.posix) {
+  if (check.posix && getOption("BatchJobs.check.posix", TRUE)) {
     path.abs = makePathAbsolute(path)
-    if(! grepl("^[[:alnum:]:/_.+-]+$", path.abs))
-      stopf("Directory '%s' contains illegal characters! Allowed: a-z A-Z 0-9 : / + . - _", path.abs)
+    if(! grepl("^[[:alnum:]:/_.-]+$", path.abs))
+      stopf("Directory '%s' contains characters that are not fully portable according to POSIX standards. Allowed: a-z A-Z 0-9 : / . - _", path.abs)
   }
 }
 
@@ -33,9 +33,10 @@ createShardedDirs = function(reg, ids) {
   }
 }
 
-# tests a file / directory for read and write permissions
+# tests a directory for read and write permissions
 # uses a heuristic for windows
 is.accessible = function(path) {
+  #FIXME use bbmisc function isWindows()
   if (grepl("windows", getOperatingSystem(), ignore.case=TRUE)) {
     # Workaround: No POSIX file system informations available, use a heuristic
     rnd = basename(tempfile(""))
@@ -123,6 +124,10 @@ getResourcesFilePath = function(reg, timestamp)
 
 getPendingDir = function(file.dir)
   file.path(file.dir, "pending")
+
+getExportDir = function(file.dir)
+  file.path(file.dir, "exports")
+
 
 # FIXME: chnage name
 getSQLFileName = function(reg, type, id, char = getOrderCharacters()[type]) {

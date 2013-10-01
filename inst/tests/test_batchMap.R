@@ -16,4 +16,23 @@ test_that("batchMap", {
   reg = makeTestRegistry()
   expect_equal(batchMap(reg, function(...) 1), integer(0L))
   expect_equal(batchMap(reg, function(...) 1, i = integer(0L)), integer(0L))
+
 })
+
+
+#FIXME reenable that test if we have a better working example
+# test_that("batchMap non atomic", {
+#   # factors
+#   reg = makeTestRegistry()
+#   ids = batchMap(reg, identity, factor(letters[1:5]))
+#   submitJobs(reg)
+#   expect_equal(loadResults(reg, simplify=TRUE), setNames(factor(letters[1:5]), 1:5))
+# 
+#   reg = makeTestRegistry()
+#   ids = batchMap(reg, identity, overloaded.index.obj)
+#   submitJobs(reg)
+#   res = loadResults(reg, use.names=FALSE, simplify=TRUE)
+#   expect_equal(res, 3:1)
+# })
+
+

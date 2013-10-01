@@ -29,16 +29,5 @@
   resource allocations. A simple example is provided here
   \url{http://code.google.com/p/batchjobs/source/browse/trunk/BatchJobs/examples/cfLSF/simple.tmpl}
   in the package repository on its homepage.
-
-  The following variables are accessible in the template
-  file: a) all argu
-}
-\examples{
-\dontrun{
-cluster.functions = makeClusterFunctionsLSF("~/mytemplate.tmpl")
-}
-}
-\seealso{
-  \link{ClusterFunctions}
 }
 

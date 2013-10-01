@@ -4,7 +4,7 @@
 \title{Creates a job description.}
 \usage{
   makeJob(id = NA_integer_, fun, fun.id = digest(fun),
-    pars, seed)
+    pars, name, seed)
 }
 \arguments{
   \item{id}{[\code{integer(1)}]\cr Job id, determined by DB
@@ -18,6 +18,9 @@
 
   \item{pars}{[\code{list}]\cr Parameter list for job
   function.}
+
+  \item{name}{[\code{character(1)}]\cr Alias name for this
+  job.}
 
   \item{seed}{[\code{integer(1)}]\cr Random seed for job.}
 }

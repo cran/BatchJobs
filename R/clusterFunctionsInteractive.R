@@ -1,7 +1,7 @@
-#' Create cluster functions for synchronous execution in same session.
+#' Create cluster functions for sequential execution in same session.
 #'
 #' All jobs executed under these cluster functions are executed
-#' synchronously, in the same interactive R process that you currently are.
+#' sequentially, in the same interactive R process that you currently are.
 #' That is, \code{submitJob} does not return until the
 #' job has finished. The main use of this \code{ClusterFunctions}
 #' implementation is to test and debug programs on a local computer.
@@ -14,17 +14,12 @@
 #'   calculations but makes it next to impossible to debug.
 #'   Default is \code{TRUE}.
 #' @return [\code{\link{ClusterFunctions}}].
-#' @examples
-#' \dontrun{
-#' cluster.functions = makeClusterFunctionsInteractive()
-#' }
 #' @export
-#' @seealso \link{ClusterFunctions}
 makeClusterFunctionsInteractive = function(write.logs=TRUE) {
   checkArg(write.logs, "logical", len=1L, na.ok=FALSE)
 
   submitJob = if(write.logs) {
-    function(conf, reg, job.name, rscript, log.file, job.dir, resources) {
+    function(conf, reg, job.name, rscript, log.file, job.dir, resources, arrayjobs) {
       # open log file for writing
       fn = file(log.file, open="wt")
       sink(fn, type="output")
@@ -47,8 +42,13 @@ makeClusterFunctionsInteractive = function(write.logs=TRUE) {
       makeSubmitJobResult(status=0L, batch.job.id="cfInteractive", msg="")
     }
   }
+
   killJob = function(conf, reg, batch.job.id) NULL
+
   listJobs = function(conf, reg) integer(0L)
 
-  makeClusterFunctions(name="Interactive", submitJob=submitJob, killJob=killJob, listJobs=listJobs)
+  getArrayEnvirName = function() NA_character_
+
+  makeClusterFunctions(name="Interactive", submitJob=submitJob, killJob=killJob,
+                       listJobs=listJobs, getArrayEnvirName=getArrayEnvirName)
 }

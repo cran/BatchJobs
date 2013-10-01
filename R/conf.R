@@ -50,7 +50,7 @@ readConfs = function(path) {
   conffiles = Filter(file.exists, unique(c(fn.pack, fn.user, fn.wd)))
   if (length(conffiles) == 0L)
     stop("No configuation found at all. Not in package, not in user.home, not in work dir!")
-  
+
   # really do this in 2 steps
   # otherwise weird things might happen due to lazy eval combined with envirs
   # and we might not see the error msg triggered in the checking of the config file
@@ -97,16 +97,18 @@ saveConf = function(reg) {
   save(file=fn, conf)
 }
 
-checkConf = function(conf) {
-  ns = ls(conf, all.names=TRUE)
-  ns2 = c("cluster.functions", "mail.start", "mail.done", "mail.error",
+getConfNames = function() {
+  c("cluster.functions", "mail.start", "mail.done", "mail.error",
     "mail.from", "mail.to", "mail.control", "db.driver", "db.options",
     "default.resources", "debug", "raise.warnings", "staged.queries", "max.concurrent.jobs")
-  if (any(ns %nin% ns2)) {
-    ns3 = setdiff(ns, ns2)
-    stopf("You are only allowed to define the following R variables in your config file:\n%s\nBut you also had:\n%s",
-      collapse(ns2, sep=", "), collapse(ns3, sep=", "))
-    }
+}
+
+checkConf = function(conf) {
+  ns = if (is.list(conf)) names(conf) else ls(conf, all.names = TRUE)
+  ns2 = getConfNames()
+  if (any(ns %nin% ns2))
+    stopf("You are only allowed to define the following R variables in your config:\n%s\nBut you also had:\n%s",
+          collapse(ns2, sep=", "), collapse(setdiff(ns, ns2), sep=", "))
 }
 
 checkConfElements = function(cluster.functions, mail.to, mail.from,
@@ -151,37 +153,79 @@ getClusterFunctions = function(conf) {
   conf$cluster.functions
 }
 
-#' Display BatchJobs configuration.
-#'
-#' @return Invisibly returns a named list with configuration settings.
-#' @export
-showConf = function() {
-  x = as.list(getBatchJobsConf())
-  f = function(y) if(is.null(y)) "" else y
-  catf("BatchJobs configuration:")
-  catf("  cluster functions: %s", f(x$cluster.functions$name))
-  catf("  mail.from: %s", f(x$mail.from))
-  catf("  mail.to: %s", f(x$mail.to))
-  catf("  mail.start: %s", f(x$mail.start))
-  catf("  mail.done: %s", f(x$mail.done))
-  catf("  mail.error: %s", f(x$mail.error))
-  catf("  default.resources: %s", listToShortString(x$default.resources))
-  catf("  debug: %s", f(x$debug))
-  catf("  raise.warnings: %s", f(x$raise.warnings))
-  catf("  staged.queries: %s", f(x$staged.queries))
-  catf("  max.concurrent.jobs: %s", f(x$max.concurrent.jobs))
-  invisible(x)
+# Function which returns a printable string describing the config
+# Used in packageStartupMessage and in print.Config
+printableConf = function(conf) {
+  x = as.list(conf)
+  x[setdiff(getConfNames(), names(x))] = ""
+  fmt = paste(
+    "BatchJobs configuration:",
+    "  cluster functions: %s",
+    "  mail.from: %s",
+    "  mail.to: %s",
+    "  mail.start: %s",
+    "  mail.done: %s",
+    "  mail.error: %s",
+    "  default.resources: %s",
+    "  debug: %s",
+    "  raise.warnings: %s",
+    "  staged.queries: %s",
+    "  max.concurrent.jobs: %s\n",
+    sep = "\n")
+  sprintf(fmt, x$cluster.functions$name, x$mail.from, x$mail.to, x$mail.start, x$mail.done,
+          x$mail.error, listToShortString(x$default.resources), x$debug, x$raise.warnings,
+          x$staged.queries, x$max.concurrent.jobs)
+}
+
+
+#' @S3method print Config
+print.Config = function(x, ...) {
+  cat(printableConf(x))
 }
 
 #' Load a specific configuration file.
 #'
 #' @param conffile [\code{character(1)}]\cr
 #'   Location of the configuration file to load.
-#' @return Nothing.
+#'   Default is \dQuote{.BatchJobs.conf} in the current working directory.
+#' @return Invisibly returns a list of configuration settings.
+#' @seealso \code{\link{getConfig}}, \code{\link{setConfig}}
 #' @export
-loadConfig = function(conffile=".BatchJobs.R") {
+loadConfig = function(conffile = ".BatchJobs.R") {
   # checks are done in sourceConfFile
   conf = sourceConfFile(conffile)
   assignConf(conf)
-  showConf()
+  invisible(setClasses(as.list(conf), "Config"))
+}
+
+#' Set and overwrite configuration settings
+#'
+#' @param conf [\code{Config} or \code{list}]\cr
+#'   List of configuration parameters as returned by \code{\link{loadConfig}} or \code{\link{getConfig}}.
+#' @param ... [\code{ANY}]\cr
+#'   Named configuration parameters. Overwrites parameters in \code{conf}, if provided.
+#' @return Invisibly returns a list of configuration settings.
+#' @seealso \code{\link{getConfig}}, \code{\link{loadConfig}}
+#' @export
+setConfig = function(conf = list(), ...) {
+  if (!is.list(conf) && !is(conf, "Config"))
+    stopf("Argument 'conf' must be of class 'list' or 'Config', not %s", class(conf)[1])
+  overwrites = insert(conf, list(...))
+  if (!length(overwrites))
+    return(invisible(getConfig()))
+  if(! isProperlyNamed(overwrites))
+    stopf("All configuration arguments in '...' must be properly named")
+  checkConf(overwrites)
+  conf = insert(as.list(getBatchJobsConf()), overwrites)
+  assignConf(as.environment(conf))
+  invisible(setClasses(conf, "Config"))
+}
+
+#' Returns a list of BatchJobs configuration settings
+#'
+#' @return \code{list} of current configuration variables with classs \dQuote{Config}.
+#' @seealso \code{\link{loadConfig}}, \code{\link{setConfig}}
+#' @export
+getConfig = function() {
+  setClasses(as.list(getBatchJobsConf()), "Config")
 }

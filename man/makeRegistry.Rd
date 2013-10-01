@@ -5,7 +5,8 @@
 \usage{
   makeRegistry(id, file.dir, sharding = TRUE, work.dir,
     multiple.result.files = FALSE, seed,
-    packages = character(0L), skip = TRUE)
+    packages = character(0L), src.dirs = character(0L),
+    skip = TRUE)
 }
 \arguments{
   \item{id}{[\code{character(1)}]\cr Name of registry.
@@ -44,6 +45,15 @@
   \item{packages}{[\code{character}]\cr Packages that will
   always be loaded on each node.  Default is
   \code{character(0)}.}
+
+  \item{src.dirs}{[\code{character}]\cr Directories
+  relative to your \code{work.dir} containing R scripts to
+  be sourced on registry load (both on slave and master).
+  Files not matching the pattern \dQuote{\\.[Rr]$} are
+  ignored.  Useful if you have many helper functions that
+  are needed during the execution of your jobs.  These
+  files should only contain function definitions and no
+  executable code.  Default is \code{character(0)}.}
 
   \item{skip}{[\code{logical(1)}]\cr Skip creation of a new
   registry if a registry is found in \code{file.dir}.
