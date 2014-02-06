@@ -36,8 +36,7 @@ createShardedDirs = function(reg, ids) {
 # tests a directory for read and write permissions
 # uses a heuristic for windows
 is.accessible = function(path) {
-  #FIXME use bbmisc function isWindows()
-  if (grepl("windows", getOperatingSystem(), ignore.case=TRUE)) {
+  if (isWindows()) {
     # Workaround: No POSIX file system informations available, use a heuristic
     rnd = basename(tempfile(""))
     tf1 = file.path(path, sprintf("test_write_access_file_%s", rnd))
@@ -86,7 +85,7 @@ getJobDirs = function(reg, ids, unique=FALSE) {
 }
 
 getFilePaths = function(reg, id, suffix, ext) {
-  fn = sprintf("%i%s.%s", id, ifelse(is.null(suffix), "", paste("-", suffix, sep="")), ext)
+  fn = sprintf("%i%s.%s", id, ifelse(is.null(suffix), "", paste0("-", suffix)), ext)
   file.path(getJobDirs(reg, id), fn)
 }
 
@@ -112,7 +111,7 @@ getLogFilePath = function(reg, id)
   getFilePaths(reg, id, NULL, "out")
 
 getResultFilePath = function(reg, id, part=NA_character_) {
-  s = if (is.na(part)) "result" else paste("result", part, sep="-")
+  s = if (is.na(part)) "result" else paste0("result-", part)
   getFilePaths(reg, id, s, "RData")
 }
 
@@ -129,7 +128,6 @@ getExportDir = function(file.dir)
   file.path(file.dir, "exports")
 
 
-# FIXME: chnage name
-getSQLFileName = function(reg, type, id, char = getOrderCharacters()[type]) {
+getPendingFile = function(reg, type, id, char = getOrderCharacters()[type]) {
   file.path(getPendingDir(reg$file.dir), sprintf("pending_%s_%s_%i.sql", char, type, id))
 }

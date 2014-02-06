@@ -1,4 +1,4 @@
-#' Kill a job on the batch system.
+#' Kill some jobs on the batch system.
 #'
 #' Kill jobs which have already been submitted to the batch system.
 #' If a job is killed its internal state is reset as if it had not been submitted at all.
@@ -6,11 +6,11 @@
 #' The function informs if
 #' (a) the job you want to kill has not been submitted,
 #' (b) the job has already terminated,
-#' (c) for some reason no batch job is is available.
-#' In all 3 cases above nothing is changed for the state of this job and no call
+#' (c) for some reason no batch job id is available.
+#' In all 3 cases above, nothing is changed for the state of this job and no call
 #' to the internal kill cluster function is generated.
 #'
-#' In case of an error when killing, the function tries after a short sleep to kill the remaining
+#' In case of an error when killing, the function tries - after a short sleep - to kill the remaining
 #' batch jobs again. If this fails again for some jobs, the function gives up. Only jobs that could be
 #' killed are reset in the DB.
 #'
@@ -19,7 +19,7 @@
 #' @param ids [\code{integer}]\cr
 #'   Ids of jobs to kill.
 #'   Default is none.
-#' @return Vector of type \code{integer} with ids of killed jobs.
+#' @return [\code{integer}]. Ids of killed jobs.
 #' @export
 #' @examples
 #' \dontrun{
@@ -28,7 +28,7 @@
 #' batchMap(reg, f, 1:10 + 5)
 #' submitJobs(reg)
 #'
-#' # kill all jobs currently _runnig_
+#' # kill all jobs currently _running_
 #' killJobs(reg, findRunning(reg))
 #' # kill all jobs queued or running
 #' killJobs(reg, findNotTerminated(reg))
@@ -95,7 +95,7 @@ killJobs = function(reg, ids) {
   }
 
   # first try to kill
-  message(shortenString(collapse(bjids), 200L, ",..."))
+  message(clipString(collapse(bjids), 200L, ",..."))
   bjids.notkilled = doKill(bjids)
 
   # second try to kill
@@ -107,10 +107,10 @@ killJobs = function(reg, ids) {
 
   # second try also not successful
   if (length(bjids.notkilled) > 0L) {
-		fn = file.path(reg$file.dir, sprintf("killjobs_failed_ids_%i", now()))
+    fn = file.path(reg$file.dir, sprintf("killjobs_failed_ids_%i", now()))
     warningf("Could not kill %i batch jobs, kill them manually!\nTheir ids have been saved in %s.",
-			length(bjids.notkilled), fn)
-		writeLines(as.character(bjids.notkilled), con=fn)
+      length(bjids.notkilled), fn)
+      writeLines(as.character(bjids.notkilled), con=fn)
   }
 
   # reset killed jobs

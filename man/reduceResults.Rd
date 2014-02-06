@@ -6,21 +6,20 @@
 \alias{reduceResultsVector}
 \title{Reduce results from result directory.}
 \usage{
-  reduceResults(reg, ids, part = NA_character_, fun, init,
-    ...)
+reduceResults(reg, ids, part = NA_character_, fun, init, impute.val, ...)
 
-  reduceResultsList(reg, ids, part = NA_character_, fun,
-    ..., use.names = "ids")
+reduceResultsList(reg, ids, part = NA_character_, fun, ...,
+  use.names = "ids", impute.val)
 
-  reduceResultsVector(reg, ids, part = NA_character_, fun,
-    ..., use.names = "ids")
+reduceResultsVector(reg, ids, part = NA_character_, fun, ...,
+  use.names = "ids", impute.val)
 
-  reduceResultsMatrix(reg, ids, part = NA_character_, fun,
-    ..., rows = TRUE, use.names = "ids")
+reduceResultsMatrix(reg, ids, part = NA_character_, fun, ..., rows = TRUE,
+  use.names = "ids", impute.val)
 
-  reduceResultsDataFrame(reg, ids, part = NA_character_,
-    fun, ..., use.names = "ids",
-    strings.as.factors = default.stringsAsFactors())
+reduceResultsDataFrame(reg, ids, part = NA_character_, fun, ...,
+  use.names = "ids", impute.val,
+  strings.as.factors = default.stringsAsFactors())
 }
 \arguments{
   \item{reg}{[\code{\link{Registry}}]\cr Registry.}
@@ -61,6 +60,14 @@
   (\dQuote{names}) or return a unnamed result
   (\dQuote{none}).  Default is \code{ids}.}
 
+  \item{impute.val}{[any]\cr For \code{reduceResults}: If
+  not missing, the value of \code{impute.val} is passed to
+  function \code{fun} as argument \code{res} for jobs with
+  missing results.\cr For the specialized reduction
+  functions \code{reduceResults[Type]}: If not missing,
+  \code{impute.val} is used as a replacement for the return
+  value of \code{fun} on missing results.}
+
   \item{rows}{[\code{logical(1)}]\cr Should the selected
   vectors be used as rows (or columns) in the result
   matrix?  Default is \code{TRUE}.}
@@ -70,20 +77,19 @@
   Default is \code{default.stringsAsFactors()}.}
 }
 \value{
-  Aggregated results, return type depends on function. If
-  \code{ids} is empty: \code{reduceResults} returns
-  \code{init} (if available) or \code{NULL},
-  \code{reduceResultsVector} returns \code{c()},
-  \code{reduceResultsList} returns \code{list()},
-  \code{reduceResultsMatrix} returns \code{matrix(0,0,0)},
-  \code{reduceResultsDataFrame} returns
-  \code{data.frame()}.
+Aggregated results, return type depends on function. If
+\code{ids} is empty: \code{reduceResults} returns
+\code{init} (if available) or \code{NULL},
+\code{reduceResultsVector} returns \code{c()},
+\code{reduceResultsList} returns \code{list()},
+\code{reduceResultsMatrix} returns \code{matrix(0,0,0)},
+\code{reduceResultsDataFrame} returns \code{data.frame()}.
 }
 \description{
-  The following functions provide ways to reduce result
-  files into either specific R objects (like vectors,
-  lists, matrices or data.frames) or to arbitrarily
-  aggregate them, which is a more general operation.
+The following functions provide ways to reduce result files
+into either specific R objects (like vectors, lists,
+matrices or data.frames) or to arbitrarily aggregate them,
+which is a more general operation.
 }
 \examples{
 # generate results:
@@ -101,6 +107,7 @@ reg <- makeRegistry(id="BatchJobsExample", file.dir=tempfile(), seed=123)
 f <- function(x) list(a=x, b=as.character(2*x), c=x^2)
 batchMap(reg, f, 1:5)
 submitJobs(reg)
+
 # reduce results to a vector
 reduceResultsVector(reg, fun=function(job, res) res$a)
 reduceResultsVector(reg, fun=function(job, res) res$b)

@@ -12,9 +12,8 @@
 #' \code{submitJob} function, see here \code{\link{ClusterFunctions}}.
 #' It is the template file's job to choose a queue for the job
 #' and handle the desired resource allocations.
-#' A simple example is provided here
-#' \url{http://code.google.com/p/batchjobs/source/browse/trunk/BatchJobs/examples/cfLSF/simple.tmpl}
-#' in the package repository on its homepage.
+#' Examples can be found on
+#' \url{https://github.com/tudo-r/BatchJobs/tree/master/examples/cfLSF}.
 #'
 #' @param template.file [\code{character(1)}]\cr
 #'   Path to a brew template file that is used for the job file.
@@ -36,7 +35,7 @@ makeClusterFunctionsLSF = function(template.file) {
       cfHandleUnknownSubmitError("bsub", res$exit.code, res$output)
     } else {
       # collapse output strings and first number in string is batch.job.id
-      batch.job.id = strextract(collapse(res$output, sep=" "), "\\d+")
+      batch.job.id = str_extract(collapse(res$output, sep=" "), "\\d+")
       makeSubmitJobResult(status=0L, batch.job.id=batch.job.id)
     }
   }
@@ -57,7 +56,7 @@ makeClusterFunctionsLSF = function(template.file) {
     # drop first header line of output
     out = tail(res$output, -1L)
     # first number in strings are batch.job.ids
-    strextract(out, "\\d+")
+    str_extract(out, "\\d+")
   }
 
   getArrayEnvirName = function() "LSB_JOBINDEX"

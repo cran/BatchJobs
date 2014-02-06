@@ -12,11 +12,8 @@
 #' \code{submitJob} function, see here \code{\link{ClusterFunctions}}.
 #' It is the template file's job to choose a queue for the job
 #' and handle the desired resource allocations.
-#' A simple example is provided here
-#' \url{http://code.google.com/p/batchjobs/source/browse/trunk/BatchJobs/examples/cfTorque/simple.tmpl}
-#' and a more complex one here
-#' \url{http://code.google.com/p/batchjobs/source/browse/trunk/BatchJobs/examples/cfTorque/lido.tmpl}
-#' in the package repository on its homepage.
+#' Examples can be found on
+#' \url{https://github.com/tudo-r/BatchJobs/tree/master/examples/cfTorque}.
 #'
 #' @param template.file [\code{character(1)}]\cr
 #'   Path to a brew template file that is used for the PBS job file.
@@ -36,7 +33,7 @@ makeClusterFunctionsTorque = function(template.file) {
     } else if (res$exit.code > 0L) {
       cfHandleUnknownSubmitError("qsub", res$exit.code, res$output)
     } else {
-      makeSubmitJobResult(status=0L, batch.job.id=trim(output))
+      makeSubmitJobResult(status=0L, batch.job.id=str_trim(output))
     }
   }
 
@@ -46,7 +43,7 @@ makeClusterFunctionsTorque = function(template.file) {
 
   listJobs = function(conf, reg) {
     # Result is lines of fully quantified batch.job.ids
-    runOSCommandLinux("qselect", "-u $USER")$output
+    runOSCommandLinux("qselect", c("-u $USER", "-s EHQRTW"))$output
   }
 
   getArrayEnvirName = function() "PBS_ARRAYID"

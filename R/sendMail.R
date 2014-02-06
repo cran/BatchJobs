@@ -4,7 +4,7 @@ sendMail = function(reg, job, result.str, extra.msg="",
   if (disable.mail)
     return(invisible(NULL))
   conf = getBatchJobsConf()
-  ischunk = !is(job, "Job")
+  ischunk = !inherits(job, "Job")
   firstjob = if(ischunk) job[[1L]] else job
   # should we mail
   mail.conds = list(start=conf$mail.start, done=conf$mail.done, error=conf$mail.error)
@@ -24,7 +24,7 @@ sendMail = function(reg, job, result.str, extra.msg="",
 
     if (ischunk) {
       ids = extractSubList(job, "id")
-      pars = vapply(job, function(j) listToShortString(j$par), character(1L))
+      pars = vapply(job, function(j) convertToShortString(j$par), character(1L))
     } else {
       ids = job$id
       pars = capture.output(print(firstjob))
@@ -34,17 +34,17 @@ sendMail = function(reg, job, result.str, extra.msg="",
       "start" = "started",
       "done"  = "finished",
       "error" = "terminated with exception")
-    subj = sprintf("[%s]: %s %s has %s", reg$id, ifelse(ischunk, "Chunk", "Job"), firstjob$id, cstr)
-    msg = paste(myformat("Ids", ids), myformat("Job Info", pars), sep = "")
+    subj = sprintf("[%s]: %s %s has %s", reg$id, ifelse(ischunk, "Chunk with first job ", "Job"), firstjob$id, cstr)
+    msg = paste0(myformat("Ids", ids), myformat("Job Info", pars))
 
     # append result information
     if (condition != "start") {
       if (extra.msg != "")
-        msg = paste(msg, myformat("Message", extra.msg), sep = "")
-      msg = paste(msg, myformat("Results", result.str), sep = "")
+        msg = paste0(msg, myformat("Message", extra.msg))
+      msg = paste0(msg, myformat("Results", result.str))
       # we cannot not list the jobs while on the slave in showStatus
       if(firstjob$id == last)
-        msg = paste(msg, myformat("Status", capture.output(showStatus(reg, run.and.exp=FALSE))), sep = "")
+        msg = paste0(msg, myformat("Status", capture.output(showStatus(reg, run.and.exp=FALSE))))
     }
     # if a mail problem occurs, we only warn but do not terminate
     ok = try (
@@ -52,7 +52,7 @@ sendMail = function(reg, job, result.str, extra.msg="",
     )
     if (is.error(ok)) {
       warningf("Could not send mail!\nFrom: %s\nTo: %s\nControl: %s\nError message: %s",
-        conf$mail.from, conf$mail.to, listToShortString(conf$mail.control), as.character(ok))
+        conf$mail.from, conf$mail.to, convertToShortString(conf$mail.control), as.character(ok))
     }
   }
   invisible(NULL)

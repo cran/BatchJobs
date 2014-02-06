@@ -30,9 +30,14 @@
 #' @param ... [any]\cr
 #'   Additional arguments to \code{fun}.
 #' @param use.names [\code{character(1)}]\cr
-#'   Name the results with job ids (\dQuote{ids}), stored job names (\dQuote{names}) 
+#'   Name the results with job ids (\dQuote{ids}), stored job names (\dQuote{names})
 #'   or return a unnamed result (\dQuote{none}).
 #'   Default is \code{ids}.
+#' @param impute.val [any]\cr
+#'   For \code{reduceResults}: If not missing, the value of \code{impute.val} is passed to function \code{fun}
+#'   as argument \code{res} for jobs with missing results.\cr
+#'   For the specialized reduction functions \code{reduceResults[Type]}: If not missing, \code{impute.val} is
+#'   used as a replacement for the return value of \code{fun} on missing results.
 #' @param rows [\code{logical(1)}]\cr
 #'   Should the selected vectors be used as rows (or columns) in the result matrix?
 #'   Default is \code{TRUE}.
@@ -60,6 +65,7 @@
 #' f <- function(x) list(a=x, b=as.character(2*x), c=x^2)
 #' batchMap(reg, f, 1:5)
 #' submitJobs(reg)
+#'
 #' # reduce results to a vector
 #' reduceResultsVector(reg, fun=function(job, res) res$a)
 #' reduceResultsVector(reg, fun=function(job, res) res$b)
@@ -74,16 +80,20 @@
 #' # reduce results to a sum
 #' reduceResults(reg, fun=function(aggr, job, res) aggr+res$a, init=0)
 # FIXME we need more documentation for reduceResultsReturnValue ...
-reduceResults = function(reg, ids, part=NA_character_, fun, init, ...) {
+reduceResults = function(reg, ids, part=NA_character_, fun, init, impute.val, ...) {
   checkRegistry(reg)
   syncRegistry(reg)
   if (missing(ids)) {
-    ids = dbFindDone(reg)
+    ids = done = dbFindDone(reg)
+    with.impute = FALSE
   } else {
     ids = checkIds(reg, ids)
-    ndone = dbFindDone(reg, ids, negate=TRUE)
-    if (length(ndone) > 0L)
-      stopf("No results available for jobs with ids: %s", collapse(ndone))
+    done = dbFindDone(reg, ids)
+    with.impute = !missing(impute.val)
+    if (!with.impute) {
+      if (length(ids) > length(done))
+        stopf("No results available for jobs with ids: %s", collapse(setdiff(ids, done)))
+    }
   }
   checkArg(fun, formals=c("aggr", "job", "res"))
 
@@ -112,7 +122,8 @@ reduceResults = function(reg, ids, part=NA_character_, fun, init, ...) {
       # use lazy evaluation
       aggr = fun(aggr,
                  job = dbGetJobs(reg, id)[[1L]],
-                 res = getResult(reg, id, part),
+                 res = if (with.impute && id %nin% done)
+                   impute.val else getResult(reg, id, part),
                  ...)
       bar$inc(1L)
     }
@@ -122,16 +133,20 @@ reduceResults = function(reg, ids, part=NA_character_, fun, init, ...) {
 
 #' @export
 #' @rdname reduceResults
-reduceResultsList = function(reg, ids, part=NA_character_, fun, ..., use.names="ids") {
+reduceResultsList = function(reg, ids, part=NA_character_, fun, ..., use.names="ids", impute.val) {
   checkRegistry(reg)
   syncRegistry(reg)
   if (missing(ids)) {
-    ids = dbFindDone(reg)
+    ids = done = dbFindDone(reg)
+    with.impute = FALSE
   } else {
     ids = checkIds(reg, ids)
-    ndone = dbFindDone(reg, ids, negate=TRUE)
-    if (length(ndone) > 0L)
-      stopf("No results available for jobs with ids: %s", collapse(ndone))
+    done = dbFindDone(reg, ids)
+    with.impute = !missing(impute.val)
+    if (!with.impute) {
+      if (length(ids) > length(done))
+        stopf("No results available for jobs with ids: %s", collapse(setdiff(ids, done)))
+    }
   }
   if (missing(fun))
     fun = function(job, res) res
@@ -140,42 +155,49 @@ reduceResultsList = function(reg, ids, part=NA_character_, fun, ..., use.names="
   use.names = convertUseNames(use.names)
 
   n = length(ids)
-  message("Reducing ", n, " results...")
+  messagef("Reducing %i results...", n)
   if (n == 0L)
     return(list())
   res = vector("list", n)
+  if (with.impute) {
+    res = replace(res, ids %nin% done, impute.val)
+    it = match(done, ids)
+  } else {
+    it = seq_len(n)
+  }
 
   bar = makeProgressBar(max=n, label="reduceResults")
   bar$set()
   tryCatch({
-    for (i in seq_along(ids)) {
+    for (i in it) {
       # use lazy evaluation!
       res[[i]] = fun(job = dbGetJobs(reg, ids[i])[[1L]],
-                     res = getResult(reg, ids[i], part), ...)
+                     res = getResult(reg, ids[i], part),
+                     ...)
       bar$inc(1L)
     }
   }, error=bar$error)
 
   names(res) = switch(use.names,
-                      "none" = NULL,
-                      "ids" = as.character(ids),
-                      "names" = dbGetJobNames(reg, ids))
+    "none" = NULL,
+    "ids" = as.character(ids),
+    "names" = dbGetJobNames(reg, ids))
   return(res)
 }
 
 
 #' @export
 #' @rdname reduceResults
-reduceResultsVector = function(reg, ids, part=NA_character_, fun, ..., use.names="ids") {
-  unlist(reduceResultsList(reg, ids, part, fun, ..., use.names = use.names))
+reduceResultsVector = function(reg, ids, part=NA_character_, fun, ..., use.names="ids", impute.val) {
+  unlist(reduceResultsList(reg, ids, part, fun, ..., use.names=use.names, impute.val=impute.val))
 }
 
 #' @export
 #' @rdname reduceResults
-reduceResultsMatrix = function(reg, ids, part=NA_character_, fun, ..., rows=TRUE, use.names="ids") {
+reduceResultsMatrix = function(reg, ids, part=NA_character_, fun, ..., rows=TRUE, use.names="ids", impute.val) {
   checkArg(rows, "logical", len=1L, na.ok=FALSE)
   use.names = convertUseNames(use.names)
-  res = reduceResultsList(reg, ids, part, fun, ..., use.names=use.names)
+  res = reduceResultsList(reg, ids, part, fun, ..., use.names=use.names, impute.val=impute.val)
 
   if (length(res) == 0L)
     return(matrix(0, nrow = 0L, ncol = 0L))
@@ -192,12 +214,12 @@ reduceResultsMatrix = function(reg, ids, part=NA_character_, fun, ..., rows=TRUE
 
 #' @export
 #' @rdname reduceResults
-reduceResultsDataFrame = function(reg, ids, part=NA_character_, fun, ..., use.names="ids",
+reduceResultsDataFrame = function(reg, ids, part=NA_character_, fun, ..., use.names="ids", impute.val,
   strings.as.factors=default.stringsAsFactors()) {
   checkArg(strings.as.factors, "logical", len=1L, na.ok=FALSE)
 
-  res = reduceResultsList(reg, ids, part, fun, ..., use.names = use.names)
-  if (length(res) == 0L)
+  res = reduceResultsList(reg, ids, part, fun, ..., use.names=use.names, impute.val=impute.val)
+  if (!length(res))
     return(data.frame())
 
   list2df(res, force.names=TRUE, strings.as.factors = strings.as.factors)

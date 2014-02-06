@@ -112,6 +112,7 @@ dbSelectWithIds = function(reg, query, ids, where=TRUE, group.by, limit, reorder
 #' @param reg [\code{\link{Registry}}]\cr
 #'   Registry.
 #' @return Nothing.
+#' @keywords internal
 #' @export
 dbCreateJobDefTable = function(reg) {
   UseMethod("dbCreateJobDefTable")
@@ -157,6 +158,7 @@ dbCreateExpandedJobsView = function(reg) {
 #' @param ids [\code{integer}]\cr
 #'   Ids of selected jobs.
 #' @return [list of \code{\link{Job}}]. Retrieved jobs from DB.
+#' @keywords internal
 #' @export
 dbGetJobs = function(reg, ids) {
   UseMethod("dbGetJobs")
@@ -261,6 +263,12 @@ dbFindOnSystem = function(reg, ids, negate=FALSE, batch.ids) {
   dbSelectWithIds(reg, query, ids, where=FALSE)$job_id
 }
 
+dbFindSubmittedNotTerminated = function(reg, ids, negate=FALSE) {
+  query = sprintf("SELECT job_id FROM %s_job_status WHERE %s (submitted IS NOT NULL AND done IS NULL AND error IS NULL)",
+                  reg$id, if (negate) "NOT" else "")
+  dbSelectWithIds(reg, query, ids, where=FALSE)$job_id
+}
+
 dbFindRunning = function(reg, ids, negate=FALSE, batch.ids) {
   if (missing(batch.ids))
     batch.ids = getBatchIds(reg, "Cannot find jobs on system")
@@ -279,15 +287,9 @@ dbFindExpiredJobs = function(reg, ids, negate=FALSE, batch.ids) {
   dbSelectWithIds(reg, query, ids, where=FALSE)$job_id
 }
 
-
 dbGetFirstJobInChunkIds = function(reg, ids){
   query = sprintf("SELECT job_id, first_job_in_chunk_id FROM %s_job_status", reg$id)
   dbSelectWithIds(reg, query, ids)$first_job_in_chunk_id
-}
-
-dbAnyErrors = function(reg, ids) {
-  query = sprintf("SELECT job_id FROM %s_job_status WHERE error IS NOT NULL", reg$id)
-  as.logical(nrow(dbSelectWithIds(reg, query, ids, where=FALSE, reorder=FALSE, limit=1L)))
 }
 
 dbGetErrorMsgs = function(reg, ids, filter=FALSE, limit) {
@@ -356,7 +358,7 @@ dbRemoveJobs = function(reg, ids) {
 ############################################
 dbSendMessage = function(reg, msg, staged = FALSE) {
   if (staged) {
-    fn = getSQLFileName(reg, msg$type, msg$ids[1L], getOrderCharacters()[msg$type])
+    fn = getPendingFile(reg, msg$type, msg$ids[1L])
     writeSQLFile(msg$msg, fn)
   } else {
     dbDoQuery(reg, msg$msg, flags="rw")
@@ -376,7 +378,7 @@ dbSendMessages = function(reg, msgs, max.retries=200L, sleep=function(r) 1.025^r
 
     for (cur in msgs) {
       first = cur[[1L]]
-      fn = getSQLFileName(reg, first$type, first$ids[1L], chars[first$type])
+      fn = getPendingFile(reg, first$type, first$ids[1L], chars[first$type])
       writeSQLFile(extractSubList(cur, "msg"), fn)
     }
   } else {

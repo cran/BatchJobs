@@ -112,52 +112,14 @@ setOnSlave = function(x, resources.path=as.character(NA)) {
   options(BatchJobs.resources.path=resources.path)
 }
 
-# FIXME BBmisc
-getOperatingSystem = function() {
-  .Platform$OS.type
-}
-
-# FIXME BBmisc
 now = function() {
   as.integer(Sys.time())
-}
-
-#FIXME: why dont we depent on stringr for this?
-
-# Extract a FIRST match for a pattern from a vector of strings.
-# @param x [\code{character}]\cr
-#   Vector of strings.
-# @param x [\code{character(1)}]\cr
-#   Regexp pattern. Just 1.
-# @return [\code{character}]. Same length as x.
-#   Returns NA if pattern was not found.
-strextract = function(x, pattern) {
-  if (length(x) == 0L)
-    return(character(0L))
-  starts = regexpr(pattern, x)
-  lens = attr(starts, "match.length")
-  stops = starts + lens - 1L
-  mapply(function(x, start, stop) {
-    if (start == -1L)
-      as.character(NA)
-    else
-      substr(x, start, stop)
-  }, x, starts, stops, USE.NAMES=FALSE)
-}
-
-#FIXME: why dont we depent on stringr for this?
-trim = function(x, ltrim=TRUE, rtrim=TRUE) {
-  if (ltrim)
-    x = sub("^[[:space:]]+", "", x)
-  if (rtrim)
-    x = sub("[[:space:]]+$", "", x)
-  return(x)
 }
 
 # FIXME BBmisc
 list2df = function(li, force.names=FALSE, strings.as.factors = default.stringsAsFactors()) {
   if (length(li) == 0L)
-    return(as.data.frame(matrix(nrow = 0L, ncol = 0L)))
+    return(makeDataFrame(0L, 0L))
 
   if (force.names) {
     li = lapply(li, function(x) setNames(x, make.names(names2(x, ""), unique=TRUE)))
@@ -166,33 +128,19 @@ list2df = function(li, force.names=FALSE, strings.as.factors = default.stringsAs
   cols = unique(unlist(lapply(li, names)))
 
   if (length(cols) == 0L)
-    return(as.data.frame(matrix(nrow = length(li), ncol = 0L)))
+    return(makeDataFrame(length(li), 0L))
 
   res = namedList(cols)
   for(col in cols) {
     tmp = lapply(li, function(it) it[[col]])
     res[[col]] = simplify2array(replace(tmp, vapply(tmp, is.null, logical(1L)), NA))
   }
-  as.data.frame(res, stringsAsFactors = strings.as.factors)
+  as.data.frame(res, stringsAsFactors=strings.as.factors)
 }
 
-# FIXME BBmisc
-shortenString = function(x, len, str.short="...") {
-  if (is.na(x))
-    return(NA_character_)
-  if (nchar(x) > len)
-    return(paste(substr(x, 1L, len - nchar(str.short)), str.short, sep=""))
-  return(x)
-}
-
-getArgNames = function(args, argnames) {
+getArgNames = function(args) {
   if (!length(args))
     return(NULL)
-  if (!missing(argnames)) {
-    if (!is.null(argnames))
-      checkArg(argnames, "character", len=length(args))
-    return(argnames)
-  }
   if (is.null(names(args[[1L]])) && is.character(args[[1L]]))
       return(args[[1L]])
   return(names(args[[1L]]))
@@ -201,12 +149,9 @@ getArgNames = function(args, argnames) {
 convertUseNames = function(use.names) {
   if (is.character(use.names) && length(use.names) == 1L && use.names %in% c("none", "ids", "names"))
     return(use.names)
-  
+
   # FIXME re-add this for the next release
-  # warning("Logical values for 'use.names' is deprecated and will be removed in a future version. Use 'none', 'ids' or 'names' instead.") 
+  # warning("Logical values for 'use.names' is deprecated and will be removed in a future version. Use 'none', 'ids' or 'names' instead.")
   checkArg(use.names, "logical", len=1L, na.ok=FALSE)
   c("none", "ids")[use.names+1L]
 }
-
-# FIXME remove this after CRAN upload
-names2 = BBmisc::names2

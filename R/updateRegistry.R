@@ -2,6 +2,7 @@
 #' @param reg [\code{\link{Registry}}]\cr
 #'   Registry.
 #' @return [any]. Updated \code{\link{Registry}} or \code{FALSE} if no updates were performed.
+#' @keywords internal
 #' @export
 updateRegistry = function(reg) {
     UseMethod("updateRegistry")
@@ -55,6 +56,10 @@ updateRegistry.Registry = function(reg) {
     query = sprintf("ALTER TABLE %s_job_def ADD COLUMN jobname TEXT", reg$id)
     dbDoQuery(reg, query, flags="rwc")
     reg$src.dirs = character(0L)
+  }
+
+  if (version.reg < package_version("1.2")) {
+    reg$src.files = character(0L)
   }
 
   reg$packages$BatchJobs$version = version.pkg

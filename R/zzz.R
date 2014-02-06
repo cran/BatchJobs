@@ -1,3 +1,18 @@
+#' The BatchJobs package
+#'
+#' @section Additional information:
+#'
+#' \describe{
+#'   \item{Homepage:}{\url{https://github.com/tudo-r/BatchJobs}}
+#'   \item{Wiki:}{\url{https://github.com/tudo-r/BatchJobs/wiki}}
+#'   \item{FAQ:}{\url{https://github.com/tudo-r/BatchJobs/wiki/FAQ}}
+#'   \item{Configuration:}{\url{https://github.com/tudo-r/BatchJobs/wiki/Configuration}}
+#' }
+#'
+#' @docType package
+#' @name BatchJobs
+NULL
+
 #' @import BBmisc
 #' @import utils
 #' @import DBI
@@ -7,6 +22,9 @@
 #' @importFrom brew brew
 #' @importFrom sendmailR sendmail
 #' @importFrom plyr rbind.fill
+#' @importFrom stringr str_extract
+#' @importFrom stringr str_trim
+NULL
 
 .BatchJobs.conf <- new.env()
 

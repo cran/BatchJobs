@@ -1,8 +1,8 @@
 #' BatchJobs configuration.
 #'
 #' In order to understand how the package should be configured
-#' please read:
-#' \url{https://code.google.com/p/batchjobs/wiki/Configuration}
+#' please read
+#' \url{https://github.com/tudo-r/BatchJobs/wiki/Configuration}.
 #'
 #' @name configuration
 #' @rdname configuration
@@ -48,8 +48,10 @@ readConfs = function(path) {
   fn.user = path.expand("~/.BatchJobs.R")
   fn.wd = suppressWarnings(normalizePath(".BatchJobs.R"))
   conffiles = Filter(file.exists, unique(c(fn.pack, fn.user, fn.wd)))
-  if (length(conffiles) == 0L)
-    stop("No configuation found at all. Not in package, not in user.home, not in work dir!")
+  if (length(conffiles) == 0L) {
+    warning("No configuation found at all. Not in package, not in user.home, not in work dir!")
+    assignConfDefaults()
+  }
 
   # really do this in 2 steps
   # otherwise weird things might happen due to lazy eval combined with envirs
@@ -173,7 +175,7 @@ printableConf = function(conf) {
     "  max.concurrent.jobs: %s\n",
     sep = "\n")
   sprintf(fmt, x$cluster.functions$name, x$mail.from, x$mail.to, x$mail.start, x$mail.done,
-          x$mail.error, listToShortString(x$default.resources), x$debug, x$raise.warnings,
+          x$mail.error, convertToShortString(x$default.resources), x$debug, x$raise.warnings,
           x$staged.queries, x$max.concurrent.jobs)
 }
 
@@ -208,8 +210,8 @@ loadConfig = function(conffile = ".BatchJobs.R") {
 #' @seealso \code{\link{getConfig}}, \code{\link{loadConfig}}
 #' @export
 setConfig = function(conf = list(), ...) {
-  if (!is.list(conf) && !is(conf, "Config"))
-    stopf("Argument 'conf' must be of class 'list' or 'Config', not %s", class(conf)[1])
+  if (!is.list(conf) && !inherits(conf, "Config"))
+    stopf("Argument 'conf' must be of class 'list' or 'Config', not %s", head(conf, 1L))
   overwrites = insert(conf, list(...))
   if (!length(overwrites))
     return(invisible(getConfig()))

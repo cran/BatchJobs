@@ -2,13 +2,12 @@
 \alias{makeClusterFunctionsMulticore}
 \title{Use multiple cores on local Linux machine to spawn parallel jobs.}
 \usage{
-  makeClusterFunctionsMulticore(ncpus, max.jobs, max.load,
-    nice,
-    r.options = c("--no-save", "--no-restore", "--no-init-file", "--no-site-file"),
-    script)
+makeClusterFunctionsMulticore(ncpus, max.jobs, max.load, nice,
+  r.options = c("--no-save", "--no-restore", "--no-init-file",
+  "--no-site-file"), script)
 }
 \arguments{
-  \item{ncpus}{[\code{integers(1)}]\cr Number of VPUs of
+  \item{ncpus}{[\code{integer(1)}]\cr Number of VPUs of
   worker.  Default means to query the worker via
   \dQuote{/proc/cpuinfo}.}
 
@@ -38,16 +37,16 @@
   for your system.  This option is only provided as a last
   resort for very experienced hackers.  Note that the path
   has to be absolute.  This is what is done in the package:
-  \url{http://code.google.com/p/batchjobs/source/browse/trunk/BatchJobs/skel/inst/bin/linux-helper}
+  \url{https://github.com/tudo-r/BatchJobs/blob/master/inst/bin/linux-helper}
   Default means to take it from package directory.}
 }
 \value{
-  [\code{\link{ClusterFunctions}}].
+[\code{\link{ClusterFunctions}}].
 }
 \description{
-  Jobs are spawned by starting multiple R sessions on the
-  commandline (similar like on true batch systems).
-  Packages \code{parallel} or \code{multicore} are not used
-  in any way.
+Jobs are spawned by starting multiple R sessions on the
+commandline (similar like on true batch systems). Packages
+\code{parallel} or \code{multicore} are not used in any
+way.
 }
 

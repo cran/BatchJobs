@@ -1,4 +1,4 @@
-syncRegistry = function(reg) { # FIXME option to use external sync
+syncRegistry = function(reg) {
   conf = getBatchJobsConf()
   if (conf$staged.queries) {
     if (conf$debug && isOnSlave())
@@ -25,16 +25,16 @@ syncRegistry = function(reg) { # FIXME option to use external sync
 }
 
 readSQLFile = function(con) {
-  x = readLines(con)
+  x = try(readLines(con), silent=TRUE)
   n = length(x)
-  if (n == 0L || x[n] != "--EOF--")
+  if (is.error(x) || n == 0L || x[n] != "--EOF--")
     return(FALSE)
   x = x[-n]
   substr(x, 1L, nchar(x) - 1L)
 }
 
 writeSQLFile = function(x, con) {
-  writeLines(c(paste(x, ";"), "--EOF--"), con = con)
+  writeLines(c(paste0(x, ";"), "--EOF--"), con = con)
 }
 
 useStagedQueries = function() {

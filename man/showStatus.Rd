@@ -2,7 +2,7 @@
 \alias{showStatus}
 \title{Show status information about jobs.}
 \usage{
-  showStatus(reg, ids, run.and.exp = TRUE, errors = 10L)
+showStatus(reg, ids, run.and.exp = TRUE, errors = 10L)
 }
 \arguments{
   \item{reg}{[\code{\link{Registry}}]\cr Registry.}
@@ -21,12 +21,12 @@
   \code{TRUE}.}
 }
 \value{
-  [\code{list}] List of absolute job numbers as printed by
-  showStatus.  Returned invisibly.
+[\code{list}] List of absolute job numbers as printed by
+showStatus.  Returned invisibly.
 }
 \description{
-  E.g.: How many there are, how many are done, any errors,
-  etc.
+E.g.: How many there are, how many are done, any errors,
+etc.
 }
 \examples{
 reg <- makeRegistry(id="BatchJobsExample", file.dir=tempfile(), seed=123)
@@ -34,8 +34,7 @@ f <- function(x) x^2
 batchMap(reg, f, 1:10)
 submitJobs(reg)
 
-# after a few moments:
-showStatus(reg)
 # should show 10 submitted jobs, which are all done.
+showStatus(reg)
 }
 

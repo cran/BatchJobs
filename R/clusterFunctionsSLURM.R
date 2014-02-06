@@ -12,11 +12,8 @@
 #' \code{submitJob} function, see here \code{\link{ClusterFunctions}}.
 #' It is the template file's job to choose a queue for the job
 #' and handle the desired resource allocations.
-#' A simple example is provided here
-#' \url{http://code.google.com/p/batchjobs/source/browse/trunk/BatchJobs/examples/cfSLURM/simple.tmpl}
-#' and a more complex one here
-#' \url{http://code.google.com/p/batchjobs/source/browse/trunk/BatchJobs/examples/cfSLURM/dortmund_fk_statistik.tmpl}
-#' in the package repository on its homepage.
+#' Examples can be found on
+#' \url{https://github.com/tudo-r/BatchJobs/tree/master/examples/cfSLURM}.
 #'
 #' @param template.file [\code{character(1)}]\cr
 #'   Path to a brew template file that is used for the SLURM job file.
@@ -36,7 +33,7 @@ makeClusterFunctionsSLURM = function(template.file) {
     } else if (res$exit.code > 0L) {
       cfHandleUnknownSubmitError("sbatch", res$exit.code, res$output)
     } else {
-      makeSubmitJobResult(status=0L, batch.job.id=trim(strsplit(output, split=" ")[[1L]][4L]))
+      makeSubmitJobResult(status=0L, batch.job.id=str_trim(strsplit(output, split=" ")[[1L]][4L]))
     }
   }
 

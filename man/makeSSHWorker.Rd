@@ -1,12 +1,11 @@
 \name{makeSSHWorker}
-\alias{makeSSHWorker}
 \alias{SSHWorker}
+\alias{makeSSHWorker}
 \title{Create SSH worker for SSH cluster functions.}
 \usage{
-  makeSSHWorker(nodename, rhome = "", ncpus, max.jobs,
-    max.load, nice,
-    r.options = c("--no-save", "--no-restore", "--no-init-file", "--no-site-file"),
-    script)
+makeSSHWorker(nodename, rhome = "", ncpus, max.jobs, max.load, nice,
+  r.options = c("--no-save", "--no-restore", "--no-init-file",
+  "--no-site-file"), script)
 }
 \arguments{
   \item{nodename}{[\code{character(1)}]\cr Host name of
@@ -49,13 +48,13 @@
   for your system.  This option is only provided as a last
   resort for very experienced hackers.  Note that the path
   has to be absolute.  This is what is done in the package:
-  \url{http://code.google.com/p/batchjobs/source/browse/trunk/BatchJobs/skel/inst/bin/linux-helper}
+  \url{https://github.com/tudo-r/BatchJobs/blob/master/inst/bin/linux-helper}
   Default means to take it from package directory.}
 }
 \value{
-  [\code{\link{SSHWorker}}].
+[\code{\link{SSHWorker}}].
 }
 \description{
-  Create SSH worker for SSH cluster functions.
+Create SSH worker for SSH cluster functions.
 }
 

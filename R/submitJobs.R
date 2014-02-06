@@ -1,5 +1,6 @@
-#' Submit jobs or chunks of jobs to batch system via cluster function.
+#' @title Submit jobs or chunks of jobs to batch system via cluster function.
 #'
+#' @description
 #' If the internal submit cluster function completes successfully, the \code{retries}
 #' counter is set back to 0 and the next job or chunk is submitted.
 #' If the internal submit cluster function returns a fatal error, the submit process
@@ -9,6 +10,12 @@
 #' \code{wait}-function with the current \code{retries} counter, the counter is
 #' increased by 1 and the same job is submitted again. If \code{max.retries} is
 #' reached the function simply terminates.
+#'
+#' Potential temporary submit warnings and errors are logged inside your file
+#' directory in the file \dQuote{submit.log}.
+#' To keep track you can use \code{tail -f [file.dir]/submit.log} in another
+#' terminal.
+#'
 #'
 #' @param reg [\code{\link{Registry}}]\cr
 #'   Registry.
@@ -30,11 +37,10 @@
 #'   (like filled queues). Each time \code{wait} is called to wait a certain
 #'   number of seconds.
 #'   Default is 10 times.
-# FIXME reenable if we support array jobs officially   
-# @param chunks.as.arrayjobs [\code{logical(1)}]\cr
-#   If ids are passed as a list of chunked job ids, execute jobs in a chunk
-#   as array jobs. Note that your scheduler and your template must be adjusted to
-#   use this option. Default is \code{FALSE}.
+#' @param chunks.as.arrayjobs [\code{logical(1)}]\cr
+#'   If ids are passed as a list of chunked job ids, execute jobs in a chunk
+#'   as array jobs. Note that your scheduler and your template must be adjusted to
+#'   use this option. Default is \code{FALSE}.
 #' @param job.delay [\code{function(n, i)} or \code{logical(1)}]\cr
 #'   Function that defines how many seconds a job should be delayed before it starts.
 #'   This is an expert option and only necessary to change when you want submit
@@ -44,7 +50,7 @@
 #'   The default function used with \code{job.delay} set to \code{TRUE} is no delay for
 #'   100 jobs or less and otherwise \code{runif(1, 0.1*n, 0.2*n)}.
 #'   If set to \code{FALSE} (the default) delaying jobs is disabled.
-#' @return Vector of submitted job ids.
+#' @return [\code{integer}]. Vector of submitted job ids.
 #' @export
 #' @examples
 #' reg <- makeRegistry(id="BatchJobsExample", file.dir=tempfile(), seed=123)
@@ -55,10 +61,7 @@
 #' # Submit the 10 jobs again, now randomized into 2 chunks:
 #' chunked = chunk(getJobIds(reg), n.chunks=2, shuffle=TRUE)
 #' submitJobs(reg, chunked)
-submitJobs = function(reg, ids, resources=list(), wait, max.retries=10L, job.delay=FALSE) {
-  
-  chunks.as.arrayjobs = FALSE
-  
+submitJobs = function(reg, ids, resources=list(), wait, max.retries=10L, chunks.as.arrayjobs=FALSE, job.delay=FALSE) {
   ### helper function to calculate the delay
   getDelays = function(cf, job.delay, n) {
     if (is.logical(job.delay)) {
@@ -77,7 +80,7 @@ submitJobs = function(reg, ids, resources=list(), wait, max.retries=10L, job.del
     ids = dbFindSubmitted(reg, negate=TRUE)
     if (length(ids) == 0L) {
       message("All jobs submitted, nothing to do!")
-      return(invisible(NULL))
+      return(invisible(integer(0L)))
     }
   } else {
     if (is.list(ids)) {
@@ -182,7 +185,7 @@ submitJobs = function(reg, ids, resources=list(), wait, max.retries=10L, job.del
   messagef("Writing %i R scripts...", n)
   resources.timestamp = saveResources(reg, resources)
   writeRscripts(reg, cf, ids, chunks.as.arrayjobs, resources.timestamp, disable.mail=FALSE,
-                delays=getDelays(cf, job.delay, n), interactive.test = !is.null(conf$interactive))
+                delays=getDelays(cf, job.delay, n))
 
   ### reset status of jobs: delete errors, done, ...
   dbSendMessage(reg, dbMakeMessageKilled(reg, unlist(ids)), staged=FALSE)
