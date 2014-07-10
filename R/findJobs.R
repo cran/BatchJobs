@@ -15,21 +15,21 @@
 #' @return [\code{integer}]. Ids for jobs which match the query.
 #' @export
 #' @examples
-#' reg <- makeRegistry(id="BatchJobsExample", file.dir=tempfile(), seed=123)
-#' f <- function(x, y) x * y
-#' batchExpandGrid(reg, f, x=1:2, y=1:3)
-#' findJobs(reg, pars=(y > 2))
+#' reg = makeRegistry(id = "BatchJobsExample", file.dir = tempfile(), seed = 123)
+#' f = function(x, y) x * y
+#' batchExpandGrid(reg, f, x = 1:2, y = 1:3)
+#' findJobs(reg, pars = (y > 2))
 findJobs = function(reg, ids, pars, jobnames) {
-  checkRegistry(reg, strict=TRUE)
+  checkRegistry(reg, strict = TRUE)
   syncRegistry(reg)
-  if (!missing(ids)) 
+  if (!missing(ids))
     checkIds(reg, ids)
 
   if (missing(pars) && missing(jobnames))
     return(getJobIds(reg))
 
   if (!missing(jobnames)) {
-    checkArg(jobnames, "character", na.ok=FALSE)
+    assertCharacter(jobnames, any.missing = FALSE)
     ids = dbMatchJobNames(reg, ids, jobnames)
   }
 
@@ -46,9 +46,9 @@ findJobs = function(reg, ids, pars, jobnames) {
       setNames(pars, ns)
     }
 
-    ind = vapply(jobs, function(job, pars, ee) eval(pars, rename(job$pars), ee),
-                 logical(1L), pars=substitute(pars), ee=parent.frame())
-    ids = extractSubList(jobs[!is.na(ind) & ind], "id", element.value=integer(1L))
+    ind = vlapply(jobs, function(job, pars, ee) eval(pars, rename(job$pars), ee),
+      pars = substitute(pars), ee = parent.frame())
+    ids = extractSubList(jobs[!is.na(ind) & ind], "id", element.value = integer(1L))
   }
 
   ids

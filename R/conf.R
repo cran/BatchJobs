@@ -11,13 +11,12 @@ NULL
 
 # sources 1 config file and returns the envir
 sourceConfFile = function(conffile) {
-  checkArg(conffile, "character", len=1L, na.ok=FALSE)
-  if (!file.exists(conffile))
-    stopf("Configuration file does not exist: '%s'", conffile)
+  assertFile(conffile)
 
-  packageStartupMessage(sprintf("Sourcing configuration file: '%s'", conffile))
+  if (getOption("BatchJobs.verbose", default = TRUE))
+    packageStartupMessage(sprintf("Sourcing configuration file: '%s'", conffile))
   conf = new.env()
-  x = try(sys.source(conffile, envir=conf))
+  x = try(sys.source(conffile, envir = conf))
   if (is.error(x))
     stopf("There was an error in sourcing your configuration file '%s': %s!", conffile, as.character(x))
   checkConf(conf)
@@ -30,7 +29,7 @@ sourceConfFiles = function(conffiles) {
   conf = new.env()
   for (cf in conffiles) {
     conf2 = sourceConfFile(cf)
-    lapply(ls(conf2), function(x) assign(x, conf2[[x]], envir=conf))
+    lapply(ls(conf2), function(x) assign(x, conf2[[x]], envir = conf))
   }
   return(conf)
 }
@@ -38,7 +37,7 @@ sourceConfFiles = function(conffiles) {
 # assigns a conf to namespace
 assignConf = function(conf) {
   conf.in.ns = getBatchJobsConf()
-  lapply(ls(conf), function(x) assign(x, conf[[x]], envir=conf.in.ns))
+  lapply(ls(conf), function(x) assign(x, conf[[x]], envir = conf.in.ns))
 }
 
 # reads package conf, userhome conf, working dir conf
@@ -73,36 +72,38 @@ assignConfDefaults = function() {
   conf$raise.warnings = FALSE
   conf$staged.queries = FALSE
   conf$max.concurrent.jobs = Inf
+  conf$fs.timeout = NA_real_
 }
 
 # loads conf into namespace on slave
 loadConf = function(reg) {
   fn = getConfFilePath(reg)
-  message("Loading conf: ", fn)
+  info("Loading conf: ", fn)
   ee = new.env()
-  load(fn, envir=ee)
+  load(fn, envir = ee)
   ns = ls(ee$conf)
   # assign all stuff to conf in namespace
   conf = getBatchJobsConf()
-  lapply(ns, function(x) assign(x, ee$conf[[x]], envir=conf))
+  lapply(ns, function(x) assign(x, ee$conf[[x]], envir = conf))
   invisible(NULL)
 }
 
 getBatchJobsConf = function() {
-  get(".BatchJobs.conf", envir=getNamespace("BatchJobs"))
+  get(".BatchJobs.conf", envir = getNamespace("BatchJobs"))
 }
 
 saveConf = function(reg) {
   fn = getConfFilePath(reg)
-  message("Saving conf: ", fn)
+  info("Saving conf: %s", fn)
   conf = getBatchJobsConf()
-  save(file=fn, conf)
+  save(file = fn, conf)
 }
 
 getConfNames = function() {
   c("cluster.functions", "mail.start", "mail.done", "mail.error",
     "mail.from", "mail.to", "mail.control", "db.driver", "db.options",
-    "default.resources", "debug", "raise.warnings", "staged.queries", "max.concurrent.jobs")
+    "default.resources", "debug", "raise.warnings", "staged.queries",
+    "max.concurrent.jobs", "fs.timeout")
 }
 
 checkConf = function(conf) {
@@ -110,45 +111,45 @@ checkConf = function(conf) {
   ns2 = getConfNames()
   if (any(ns %nin% ns2))
     stopf("You are only allowed to define the following R variables in your config:\n%s\nBut you also had:\n%s",
-          collapse(ns2, sep=", "), collapse(setdiff(ns, ns2), sep=", "))
+          collapse(ns2, sep = ", "), collapse(setdiff(ns, ns2), sep = ", "))
 }
 
 checkConfElements = function(cluster.functions, mail.to, mail.from,
   mail.start, mail.done, mail.error, mail.control, db.driver, db.options, default.resources, debug,
-  raise.warnings, staged.queries, max.concurrent.jobs) {
+  raise.warnings, staged.queries, max.concurrent.jobs, fs.timeout) {
+
+  mail.choices = c("none", "first", "last", "first+last", "all")
 
   if (!missing(cluster.functions))
-    checkArg(cluster.functions, cl = "ClusterFunctions")
+    assertClass(cluster.functions, "ClusterFunctions")
   if (!missing(mail.from))
-    checkArg(mail.from, cl = "character", len = 1L, na.ok = FALSE)
+    assertString(mail.from)
   if (!missing(mail.to))
-    checkArg(mail.to, cl = "character", len = 1L, na.ok = FALSE)
+    assertString(mail.to)
   if (!missing(mail.start))
-    checkArg(mail.start, choices = c("none", "first", "last", "first+last", "all"))
+    assertChoice(mail.start, mail.choices)
   if (!missing(mail.done))
-    checkArg(mail.done, choices = c("none", "first", "last", "first+last", "all"))
+    assertChoice(mail.done, mail.choices)
   if (!missing(mail.error))
-    checkArg(mail.error, choices = c("none", "first", "last", "first+last", "all"))
+    assertChoice(mail.error, mail.choices)
   if (!missing(mail.control))
-    checkArg(mail.control, cl = "list")
-  if (!missing(mail.control))
-    checkArg(mail.control, cl = "list")
-  if (!missing(mail.control))
-    checkArg(mail.control, cl = "list")
+    assertList(mail.control)
   if (!missing(db.driver))
-    checkArg(db.driver, cl = "character", len = 1L, na.ok = FALSE)
+    assertString(db.driver)
   if (!missing(db.options))
-    checkArg(db.options, cl = "list")
+    assertList(db.options)
   if (!missing(default.resources))
-    checkArg(default.resources, cl = "list")
+    assertList(default.resources)
   if (!missing(debug))
-    checkArg(debug, cl = "logical", len = 1L, na.ok = FALSE)
+    assertFlag(debug)
   if (!missing(raise.warnings))
-    checkArg(raise.warnings, cl = "logical", len = 1L, na.ok = FALSE)
+    assertFlag(raise.warnings)
   if (!missing(staged.queries))
-    checkArg(staged.queries, cl = "logical", len = 1L, na.ok = FALSE)
+    assertFlag(staged.queries)
   if (!missing(max.concurrent.jobs))
-    checkArg(max.concurrent.jobs, cl = "numeric", len = 1L, na.ok = FALSE)
+    assertCount(max.concurrent.jobs)
+  if (!missing(fs.timeout))
+    assertNumber(fs.timeout)
 }
 
 getClusterFunctions = function(conf) {
@@ -172,15 +173,16 @@ printableConf = function(conf) {
     "  debug: %s",
     "  raise.warnings: %s",
     "  staged.queries: %s",
-    "  max.concurrent.jobs: %s\n",
+    "  max.concurrent.jobs: %s",
+    "  fs.timeout: %s\n",
     sep = "\n")
   sprintf(fmt, x$cluster.functions$name, x$mail.from, x$mail.to, x$mail.start, x$mail.done,
           x$mail.error, convertToShortString(x$default.resources), x$debug, x$raise.warnings,
-          x$staged.queries, x$max.concurrent.jobs)
+          x$staged.queries, x$max.concurrent.jobs, x$fs.timeout)
 }
 
 
-#' @S3method print Config
+#' @export
 print.Config = function(x, ...) {
   cat(printableConf(x))
 }
@@ -213,9 +215,9 @@ setConfig = function(conf = list(), ...) {
   if (!is.list(conf) && !inherits(conf, "Config"))
     stopf("Argument 'conf' must be of class 'list' or 'Config', not %s", head(conf, 1L))
   overwrites = insert(conf, list(...))
-  if (!length(overwrites))
+  if (length(overwrites) == 0L)
     return(invisible(getConfig()))
-  if(! isProperlyNamed(overwrites))
+  if (!isProperlyNamed(overwrites))
     stopf("All configuration arguments in '...' must be properly named")
   checkConf(overwrites)
   conf = insert(as.list(getBatchJobsConf()), overwrites)

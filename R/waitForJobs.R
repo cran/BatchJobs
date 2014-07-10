@@ -22,7 +22,7 @@
 #'   Default is \code{604800} (one week).
 #' @param stop.on.error [\code{logical(1)}]\cr
 #'   Immediately return if a job terminates with an error? Default is \code{FALSE}.
-#' @return [\code{logical(1)}]. Returns \code{TRUE} if all jobs terminated successfully 
+#' @return [\code{logical(1)}]. Returns \code{TRUE} if all jobs terminated successfully
 #'   and \code{FALSE} if either an error occurred or the timeout is reached.
 #' @export
 waitForJobs = function(reg, ids, sleep = 10, timeout = 604800, stop.on.error = FALSE) {
@@ -32,15 +32,15 @@ waitForJobs = function(reg, ids, sleep = 10, timeout = 604800, stop.on.error = F
     ids = dbFindSubmittedNotTerminated(reg)
   } else {
     ids = checkIds(reg, ids)
-    not.submitted = dbFindSubmitted(reg, ids, negate=TRUE)
+    not.submitted = dbFindSubmitted(reg, ids, negate = TRUE)
     if (length(not.submitted))
       stopf("Not all jobs have been submitted, e.g. job with id %i", head(not.submitted, 1L))
   }
-  checkArg(sleep, "numeric", len=1L, lower=1, na.ok=FALSE)
+  assertNumber(sleep, lower = 1)
   if (is.infinite(sleep))
     stop("Argument 'sleep' must be finite")
-  checkArg(timeout, "numeric", len=1L, lower=sleep, na.ok=FALSE)
-  checkArg(stop.on.error, "logical", len=1L, na.ok=FALSE)
+  assertNumber(timeout, lower = sleep)
+  assertFlag(stop.on.error)
 
   n = length(ids)
   if (n == 0L)
@@ -49,18 +49,18 @@ waitForJobs = function(reg, ids, sleep = 10, timeout = 604800, stop.on.error = F
   batch.ids = getBatchIds(reg, "Cannot find jobs on system")
   i = 1L
 
-  bar = makeProgressBar(min=0L, max=n, label="Waiting                  ")
+  bar = makeProgressBar(min = 0L, max = n, label = "Waiting                  ")
   on.exit(bar$kill())
 
   repeat {
 
-    stats = dbGetStats(reg, ids, running=TRUE, expired=FALSE, times=FALSE, batch.ids=batch.ids)
+    stats = dbGetStats(reg, ids, running = TRUE, expired = FALSE, times = FALSE, batch.ids = batch.ids)
     n.sys = n - stats$done - stats$error
     bar$set(n - n.sys, msg = sprintf("Waiting [S:%i D:%i E:%i R:%i]", n.sys, stats$done, stats$error, stats$running))
 
     if (stop.on.error && stats$error) {
-      err = dbGetErrorMsgs(reg, ids, filter=TRUE, limit=1L)
-      messagef("Job %i terminated with an error: %s", err$job_id, err$error)
+      err = dbGetErrorMsgs(reg, ids, filter = TRUE, limit = 1L)
+      warningf("Job %i terminated with an error: %s", err$job_id, err$error)
       return(FALSE)
     }
 
@@ -74,12 +74,12 @@ waitForJobs = function(reg, ids, sleep = 10, timeout = 604800, stop.on.error = F
       # check if there are still jobs on the system and none has mystically disappeared
       # NOTE it seems like some schedulers are "laggy", we should not do this operation
       # in the first loop w/o a sleep
-      if(!length(dbFindOnSystem(reg, ids, batch.ids=batch.ids)))
+      if(!length(dbFindOnSystem(reg, ids, batch.ids = batch.ids)))
         return(stats$error == 0L)
     }
 
     if (is.finite(timeout) && now() > timeout) {
-      messagef("Timeout reached. %i jobs still on system.", n.sys)
+      warningf("Timeout reached. %i jobs still on system.", n.sys)
       return(FALSE)
     }
 

@@ -19,33 +19,32 @@
 #' @export
 #' @examples
 #' # define function to reduce on slave, we want to sum a vector
-#' f <- function(aggr, x) aggr + x
-#' reg <- makeRegistry(id="BatchJobsExample", file.dir=tempfile(), seed=123)
+#' f = function(aggr, x) aggr + x
+#' reg = makeRegistry(id = "BatchJobsExample", file.dir = tempfile(), seed = 123)
 #'
 #' # sum 20 numbers on each slave process, i.e. 5 jobs
-#' batchReduce(reg, fun=f, 1:100, init=0, block.size=5)
+#' batchReduce(reg, fun = f, 1:100, init = 0, block.size = 5)
 #' submitJobs(reg)
 #'
 #' # now reduce one final time on master
-#' reduceResults(reg, fun=function(aggr,job,res) f(aggr, res))
-batchReduce = function(reg, fun, xs, init, block.size, more.args=list()) {
-  checkRegistry(reg, strict=TRUE)
+#' reduceResults(reg, fun = function(aggr,job,res) f(aggr, res))
+batchReduce = function(reg, fun, xs, init, block.size, more.args = list()) {
+  checkRegistry(reg, strict = TRUE)
   syncRegistry(reg)
-  checkArg(fun, formals=c("aggr", "x"))
+  assertFunction(fun, c("aggr", "x"))
   if (!is.vector(xs))
     stop("Argument xs must be a vector")
-  block.size = convertInteger(block.size)
-  checkArg(block.size, "integer", len=1L, lower=1L, na.ok=FALSE)
+  block.size = asCount(block.size, positive = TRUE)
   if (dbGetJobCount(reg) > 0L)
     stop("Registry is not empty!")
-  checkMoreArgs(more.args, reserved=c(".fun", ".init"))
-  xs.blocks = chunk(xs, chunk.size = block.size, shuffle=FALSE)
-  more.args = c(more.args, list(.fun=fun, .init=init))
-  batchMap(reg, batchReduceWrapper, xs.blocks, more.args=more.args)
+  checkMoreArgs(more.args, reserved = c(".fun", ".init"))
+  xs.blocks = chunk(xs, chunk.size = block.size, shuffle = FALSE)
+  more.args = c(more.args, list(.fun = fun, .init = init))
+  batchMap(reg, batchReduceWrapper, xs.blocks, more.args = more.args)
 }
 
 batchReduceWrapper = function(xs.block, .fun, .init, ...) {
   fun = function(aggr, x)
     .fun(aggr, x, ...)
-  Reduce(fun, xs.block, init=.init)
+  Reduce(fun, xs.block, init = .init)
 }

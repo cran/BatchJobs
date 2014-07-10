@@ -19,8 +19,8 @@
 #'   Random seed for job.
 #' @aliases Job
 #' @export
-makeJob = function(id=NA_integer_, fun, fun.id=digest(fun), pars, name, seed) {
-  setClasses(list(id=id, fun=fun, fun.id=fun.id, pars=pars, name=name, seed=seed), "Job")
+makeJob = function(id = NA_integer_, fun, fun.id = digest(fun), pars, name, seed) {
+  setClasses(list(id = id, fun = fun, fun.id = fun.id, pars = pars, name = name, seed = seed), "Job")
 }
 
 #' Get number of jobs in registry.
@@ -29,7 +29,7 @@ makeJob = function(id=NA_integer_, fun, fun.id=digest(fun), pars, name, seed) {
 #' @return [\code{integer(1)}].
 #' @export
 getJobNr = function(reg) {
-  checkArg(reg, "Registry")
+  checkRegistry(reg)
   dbGetJobCount(reg)
 }
 
@@ -39,11 +39,11 @@ getJobNr = function(reg) {
 #' @return [\code{character}].
 #' @export
 getJobIds = function(reg) {
-  checkArg(reg, "Registry")
+  checkRegistry(reg)
   dbGetJobIds(reg)
 }
 
-#' @S3method print Job
+#' @export
 print.Job = function(x, ...) {
   cat("BatchJobs job:\n")
   catf("  Job id: %s", x$id)

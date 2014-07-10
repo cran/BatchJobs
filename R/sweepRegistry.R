@@ -30,7 +30,7 @@ sweepRegistry = function(reg, sweep = c("scripts", "conf")) {
   checkRegistry(reg)
   syncRegistry(reg)
 
-  checkArg(sweep, subset = c("scripts", "logs", "resources", "conf"))
+  assertSubset(sweep, c("scripts", "logs", "resources", "conf"))
 
   if (length(dbFindRunning(reg)) > 0L)
     stop("Can't sweep registry while jobs are running")
@@ -60,7 +60,7 @@ sweepRegistry = function(reg, sweep = c("scripts", "conf")) {
       files = c(files, list.files(jd, pattern = "^[0-9]+\\.R$", recursive = TRUE, full.names = TRUE))
   }
 
-  messagef("Removing %i files ...", length(files))
+  info("Removing %i files ...", length(files))
   ok = all(file.remove(files))
   if (!ok)
     warning("Not all files could be deleted. Check file permissions and try again")

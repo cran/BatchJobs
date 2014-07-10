@@ -1,14 +1,14 @@
 getJobInfoInternal = function(reg, ids, pars, select, unit, columns) {
   if (!missing(ids))
     ids = checkIds(reg, ids)
-  checkArg(unit, choices=c("seconds", "minutes", "hours", "days", "weeks"))
+  assertChoice(unit, c("seconds", "minutes", "hours", "days", "weeks"))
 
   select.db   = c("submitted",      "started",      "done",       "done - started AS time_running", "started - submitted AS time_queued", "error",      "node",     "batch_job_id", "r_pid", "seed")
   select.cns  = c("time.submitted", "time.started", "time.done",  "time.running",                  "time.queued",                        "error.msg",   "nodename", "batch.id",     "r.pid", "seed")
   columns = c(columns, setNames(select.db, select.cns))
 
   if (!missing(select)) {
-    checkArg(select, subset=c("id", select.cns))
+    assertSubset(select, c("id", select.cns))
     columns = columns[names(columns) %in% c("id", select)]
   }
 
@@ -27,7 +27,7 @@ getJobInfoInternal = function(reg, ids, pars, select, unit, columns) {
 
   # shorten error messages
   if (!is.null(tab$error.msg))
-    tab$error.msg = vapply(tab$error.msg, clipString, "", len = 30L)
+    tab$error.msg = vcapply(tab$error.msg, clipString, len = 30L)
 
   # convert time diffs
   div = setNames(c(1L, 60L, 3600L, 86400L, 604800L), c("seconds", "minutes", "hours", "days", "weeks"))[unit]
@@ -69,27 +69,27 @@ getJobInfoInternal = function(reg, ids, pars, select, unit, columns) {
 #'   Default is \dQuote{seconds}.
 #' @return [\code{data.frame}].
 #' @export
-getJobInfo = function(reg, ids, pars=FALSE, prefix.pars=FALSE, select, unit="seconds") {
+getJobInfo = function(reg, ids, pars = FALSE, prefix.pars = FALSE, select, unit = "seconds") {
   UseMethod("getJobInfo")
 }
 
 #' @method getJobInfo Registry
-#' @S3method getJobInfo Registry
-getJobInfo.Registry = function(reg, ids, pars=FALSE, prefix.pars=FALSE, select, unit="seconds") {
+#' @export
+getJobInfo.Registry = function(reg, ids, pars = FALSE, prefix.pars = FALSE, select, unit = "seconds") {
   syncRegistry(reg)
-  checkArg(pars, "logical", len=1L, na.ok=FALSE)
-  columns = c(id="job_id")
+  assertFlag(pars)
+  columns = c(id = "job_id")
   if (pars)
-    columns = c(columns, c(pars="pars"))
+    columns = c(columns, c(pars = "pars"))
 
   tab = getJobInfoInternal(reg, ids, pars, select, unit, columns)
 
   # unserialize parameters
   if (pars && !is.null(tab$pars)) {
-    pars = list2df(lapply(tab$pars, function(x) unserialize(charToRaw(x))), force.names=TRUE)
+    pars = list2df(lapply(tab$pars, function(x) unserialize(charToRaw(x))), force.names = TRUE)
     if (prefix.pars)
       names(pars) = sprintf("job.par.%s", names(pars))
-    tab = cbind(subset(tab, select=-pars), pars)
+    tab = cbind(subset(tab, select = -pars), pars)
   }
   return(tab)
 }

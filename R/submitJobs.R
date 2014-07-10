@@ -53,15 +53,15 @@
 #' @return [\code{integer}]. Vector of submitted job ids.
 #' @export
 #' @examples
-#' reg <- makeRegistry(id="BatchJobsExample", file.dir=tempfile(), seed=123)
-#' f <- function(x) x^2
+#' reg = makeRegistry(id = "BatchJobsExample", file.dir = tempfile(), seed = 123)
+#' f = function(x) x^2
 #' batchMap(reg, f, 1:10)
 #' submitJobs(reg)
 #'
 #' # Submit the 10 jobs again, now randomized into 2 chunks:
-#' chunked = chunk(getJobIds(reg), n.chunks=2, shuffle=TRUE)
+#' chunked = chunk(getJobIds(reg), n.chunks = 2, shuffle = TRUE)
 #' submitJobs(reg, chunked)
-submitJobs = function(reg, ids, resources=list(), wait, max.retries=10L, chunks.as.arrayjobs=FALSE, job.delay=FALSE) {
+submitJobs = function(reg, ids, resources = list(), wait, max.retries = 10L, chunks.as.arrayjobs = FALSE, job.delay = FALSE) {
   ### helper function to calculate the delay
   getDelays = function(cf, job.delay, n) {
     if (is.logical(job.delay)) {
@@ -70,21 +70,21 @@ submitJobs = function(reg, ids, resources=list(), wait, max.retries=10L, chunks.
       }
       return(delays = rep.int(0, n))
     }
-    vapply(seq_along(ids), job.delay, numeric(1L), n=n)
+    vnapply(seq_along(ids), job.delay, n = n)
   }
 
   ### argument checks on registry and ids
-  checkArg(reg, cl="Registry")
+  checkRegistry(reg)
   syncRegistry(reg)
   if (missing(ids)) {
-    ids = dbFindSubmitted(reg, negate=TRUE)
+    ids = dbFindSubmitted(reg, negate = TRUE)
     if (length(ids) == 0L) {
-      message("All jobs submitted, nothing to do!")
+      info("All jobs submitted, nothing to do!")
       return(invisible(integer(0L)))
     }
   } else {
     if (is.list(ids)) {
-      ids = lapply(ids, checkIds, reg=reg, check.present=FALSE)
+      ids = lapply(ids, checkIds, reg = reg, check.present = FALSE)
       dbCheckJobIds(reg, unlist(ids))
     } else if(is.numeric(ids)) {
       ids = checkIds(reg, ids)
@@ -100,26 +100,25 @@ submitJobs = function(reg, ids, resources=list(), wait, max.retries=10L, chunks.
   n = length(ids)
 
   ### argument checks for other parameters
-  checkArg(resources, "list")
+  assertList(resources)
   resources = resrc(resources)
 
   if (missing(wait))
     wait = function(retries) 10 * 2^retries
   else
-    checkArg(wait, formals="retries")
+    assertFunction(wait, "retries")
 
   if (is.logical(job.delay)) {
-    checkArg(job.delay, "logical", len=1L, na.ok=FALSE)
+    assertFlag(job.delay)
   } else {
-    checkArg(job.delay, formals=c("n", "i"))
+    checkFunction(job.delay, c("n", "i"))
   }
 
-  if (is.finite(max.retries)) {
-    max.retries = convertInteger(max.retries)
-    checkArg(max.retries, "integer", len=1L, na.ok=FALSE)
-  }
+  if (is.finite(max.retries))
+    max.retries = asCount(max.retries)
 
-  checkArg(chunks.as.arrayjobs, "logical", na.ok = FALSE)
+
+  assertFlag(chunks.as.arrayjobs)
   if (chunks.as.arrayjobs && is.na(cf$getArrayEnvirName())) {
     warningf("Cluster functions '%s' do not support array jobs, falling back on chunks", cf$name)
     chunks.as.arrayjobs = FALSE
@@ -153,26 +152,33 @@ submitJobs = function(reg, ids, resources=list(), wait, max.retries=10L, chunks.
   ### save config, start the work
   saveConf(reg)
   is.chunked = is.list(ids)
-  messagef("Submitting %i chunks / %i jobs.", n, if(is.chunked) sum(vapply(ids, length, integer(1L))) else n)
-  messagef("Cluster functions: %s.", cf$name)
-  messagef("Auto-mailer settings: start=%s, done=%s, error=%s.", conf$mail.start, conf$mail.done, conf$mail.error)
+  info("Submitting %i chunks / %i jobs.", n, if(is.chunked) sum(viapply(ids, length)) else n)
+  info("Cluster functions: %s.", cf$name)
+  info("Auto-mailer settings: start=%s, done=%s, error=%s.", conf$mail.start, conf$mail.done, conf$mail.error)
 
+
+  # use staged queries on master if fs.timeout is set
+  # -> this way we are relatively sure that db transactions are performed in the intended order
+  fs.timeout = conf$fs.timeout
+  staged = conf$staged.queries && !is.na(fs.timeout)
   interrupted = FALSE
-  submit.msgs = buffer("list", 1000L, dbSendMessages,
-                       reg=reg, max.retries=10000L, sleep=function(r) 5,
-                       staged=useStagedQueries())
+
+  submit.msgs = buffer(type = "list", capacity = 1000L, value = dbSendMessages,
+                       reg = reg, max.retries = 10000L, sleep = function(r) 5,
+                       staged = staged, fs.timeout = fs.timeout)
+
   logger = makeSimpleFileLogger(file.path(reg$file.dir, "submit.log"), touch = FALSE, keep = 1L)
 
   ### set on exit handler to avoid inconsistencies caused by user interrupts
   on.exit({
     # we need the second case for errors in brew (e.g. resources)
-    if(interrupted && exists("batch.result", inherits=FALSE)) {
-      submit.msgs$push(dbMakeMessageSubmitted(reg, id, time=submit.time,
-        batch.job.id=batch.result$batch.job.id, first.job.in.chunk.id = if(is.chunked) id1 else NULL,
-        resources.timestamp=resources.timestamp))
+    if(interrupted && exists("batch.result", inherits = FALSE)) {
+      submit.msgs$push(dbMakeMessageSubmitted(reg, id, time = submit.time,
+        batch.job.id = batch.result$batch.job.id, first.job.in.chunk.id = if(is.chunked) id1 else NULL,
+        resources.timestamp = resources.timestamp))
     }
     # send remaining msgs now
-    messagef("Sending %i submit messages...\nMight take some time, do not interrupt this!", submit.msgs$pos())
+    info("Sending %i submit messages...\nMight take some time, do not interrupt this!", submit.msgs$pos())
     submit.msgs$clear()
 
     # message the existance of the log file
@@ -182,47 +188,50 @@ submitJobs = function(reg, ids, resources=list(), wait, max.retries=10L, chunks.
   })
 
   ### write R scripts
-  messagef("Writing %i R scripts...", n)
+  info("Writing %i R scripts...", n)
   resources.timestamp = saveResources(reg, resources)
-  writeRscripts(reg, cf, ids, chunks.as.arrayjobs, resources.timestamp, disable.mail=FALSE,
-                delays=getDelays(cf, job.delay, n))
+  rscripts = writeRscripts(reg, cf, ids, chunks.as.arrayjobs, resources.timestamp, disable.mail = FALSE,
+    delays = getDelays(cf, job.delay, n))
+  waitForFiles(rscripts, timeout = fs.timeout)
 
   ### reset status of jobs: delete errors, done, ...
-  dbSendMessage(reg, dbMakeMessageKilled(reg, unlist(ids)), staged=FALSE)
-
+  dbSendMessage(reg, dbMakeMessageKilled(reg, unlist(ids), type = "first"), staged = staged, fs.timeout = fs.timeout)
 
   ### initialize progress bar
-  bar = makeProgressBar(max=n, label="SubmitJobs")
+  bar = makeProgressBar(max = n, label = "SubmitJobs")
   bar$set()
 
-  # FIXME add a message about where to find log files
   tryCatch({
-    for (id in ids) {
+    for (i in seq_along(ids)) {
+      id = ids[[i]]
       id1 = id[1L]
       retries = 0L
 
-      repeat { # max.retries max be Inf
+      repeat { # max.retries may be Inf
         if (limit.concurrent.jobs && length(cf$listJobs(conf, reg)) >= conf$max.concurrent.jobs) {
           # emulate a temporary erroneous batch result
-          batch.result = makeSubmitJobResult(status=10L, batch.job.id=NA_character_, "Max concurrent jobs exhausted")
+          batch.result = makeSubmitJobResult(status = 10L, batch.job.id = NA_character_, "Max concurrent jobs exhausted")
         } else {
           # try to submit the job
           interrupted = TRUE
           submit.time = now()
-          batch.result = cf$submitJob(conf=conf, reg=reg,
-                                      job.name=sprintf("%s-%i", reg$id, id1),
-                                      rscript=getRScriptFilePath(reg, id1),
-                                      log.file=getLogFilePath(reg, id1),
-                                      job.dir=getJobDirs(reg, id1),
-                                      resources=resources,
-                                      arrayjobs=if(chunks.as.arrayjobs) length(id) else 1L)
+          batch.result = cf$submitJob(
+            conf = conf,
+            reg = reg,
+            job.name = sprintf("%s-%i", reg$id, id1),
+            rscript = rscripts[i],
+            log.file = getLogFilePath(reg, id1),
+            job.dir = getJobDirs(reg, id1),
+            resources = resources,
+            arrayjobs = if(chunks.as.arrayjobs) length(id) else 1L
+          )
         }
 
         ### validate status returned from cluster functions
         if (batch.result$status == 0L) {
-          submit.msgs$push(dbMakeMessageSubmitted(reg, id, time=submit.time,
-                                                  batch.job.id=batch.result$batch.job.id, first.job.in.chunk.id = if(is.chunked) id1 else NULL,
-                                                  resources.timestamp=resources.timestamp))
+          submit.msgs$push(dbMakeMessageSubmitted(reg, id, time = submit.time,
+              batch.job.id = batch.result$batch.job.id, first.job.in.chunk.id = if(is.chunked) id1 else NULL,
+              resources.timestamp = resources.timestamp))
           interrupted = FALSE
           bar$inc(1L)
           break
@@ -251,7 +260,7 @@ submitJobs = function(reg, ids, resources=list(), wait, max.retries=10L, chunks.
         }
       }
     }
-  }, error=bar$error)
+  }, error = bar$error)
 
   ### return ids (on.exit handler kicks now in to submit the remaining messages)
   return(invisible(ids))

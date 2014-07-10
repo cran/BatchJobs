@@ -23,22 +23,21 @@
 #' @return [\code{integer}]. Ids of jobs where pattern was found in the log file.
 #' @export
 #' @seealso \code{\link{showLog}}, \code{\link{getErrorMessages}}
-grepLogs = function(reg, ids, pattern="warn", ignore.case=TRUE, verbose=FALSE, range=2L) {
+grepLogs = function(reg, ids, pattern = "warn", ignore.case = TRUE, verbose = FALSE, range = 2L) {
   checkRegistry(reg)
   syncRegistry(reg)
   if (missing(ids)) {
     ids = dbFindTerminated(reg)
   } else {
-    nterminated = dbFindTerminated(reg, ids, negate=TRUE)
+    nterminated = dbFindTerminated(reg, ids, negate = TRUE)
     if (length(nterminated) > 0L)
       stopf("Not all jobs with provided ids have finished yet and therefore possess no log file, e.g. id=%i.",
             nterminated[1L])
   }
-  checkArg(pattern, "character", len=1L, na.ok=FALSE)
-  checkArg(ignore.case, "logical", len=1L, na.ok=FALSE)
-  checkArg(verbose, "logical", len=1L, na.ok=FALSE)
-  range = convertInteger(range)
-  checkArg(range, "integer", len=1L, lower=0L, na.ok=FALSE)
+  assertString(pattern)
+  assertFlag(ignore.case)
+  assertFlag(verbose)
+  range = asCount(range)
 
   fids = dbGetFirstJobInChunkIds(reg, ids)
   fns = getLogFilePath(reg, ifelse(is.na(fids), ids, fids))
@@ -59,16 +58,15 @@ grepLogs = function(reg, ids, pattern="warn", ignore.case=TRUE, verbose=FALSE, r
     start = grep(sprintf("^########## Executing jid=%i ##########$", ids[i]), lines)
     if (length(start) != 1L)
       stop("The output of the job with id=%i could not be found in file '%s' or was found more than once", ids[i], fns[i])
-    end = head(grep("^########## Executing jid=[0-9]+ ##########$", tail(lines, -start)), 1L)
+    end = head(grep("^########## Executing jid = [0-9]+ ##########$", tail(lines, -start)), 1L)
     lines = lines[start:min(start+end, length(lines))]
 
-    matches = grep(pattern, lines, ignore.case=ignore.case)
+    matches = grep(pattern, lines, ignore.case = ignore.case)
     matched[i] = (length(matches) > 0L)
     if (verbose && matched[i]) {
       messagef("\n##### Matches for job with id=%i (%s) #####",
                ids[i], basename(fns[i]))
-      message(collapse(vapply(matches, getLines, character(1L), lines=lines, range=range),
-                       "\n---\n"))
+      message(collapse(vcapply(matches, getLines, lines = lines, range = range), "\n---\n"))
     }
   }
 

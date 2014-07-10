@@ -1,25 +1,19 @@
-checkIds = function(reg, ids, check.present=TRUE) {
-  ids = convertIntegers(ids)
-  checkArg(ids, cl="integer", na.ok=FALSE)
-  if (anyDuplicated(ids) > 0L) {
-    dup = ids[duplicated(ids)]
-    stopf("You have duplicated entries in your id vector: %s", collapse(dup))
-  }
+checkIds = function(reg, ids, check.present = TRUE) {
+  ids = asInteger(ids, any.missing = FALSE, unique = TRUE)
   if (check.present)
     dbCheckJobIds(reg, ids)
   return(ids)
 }
 
-checkId = function(reg, id, check.present=TRUE) {
-  id = convertInteger(id)
-  checkArg(id, cl="integer", na.ok=FALSE, len=1L)
+checkId = function(reg, id, check.present = TRUE) {
+  id = asInt(id)
   if (check.present)
     dbCheckJobIds(reg, id)
   return(id)
 }
 
 checkMoreArgs = function(more.args, reserved) {
-  checkArg(more.args, cl="list")
+  assertList(more.args)
   n = names(more.args)
   if(is.null(n) || missing(reserved))
     return(invisible(TRUE))
@@ -33,19 +27,16 @@ checkMoreArgs = function(more.args, reserved) {
 
 checkPart = function(reg, part) {
   if (reg$multiple.result.files) {
-    if (!(
-      (is.atomic(part) && length(part) == 1L && is.na(part)) ||
-      (is.character(part) && !any(is.na(part)))
-    ))
+    if (!testScalarNA(part) && !testCharacter(part, any.missing = FALSE))
       stop("'part' must be NA or a character vector without NAs!")
   } else {
-    if (!is.atomic(part) || length(part) != 1L || !is.na(part))
+    if (!testScalarNA(part))
       stop("'part' must be NA because multiple.result.files is FALSE!")
   }
 }
 
 
-getListJobs = function(msg=NULL) {
+getListJobs = function(msg = NULL) {
   conf = getBatchJobsConf()
   cf = getClusterFunctions(conf)
   fun = cf$listJobs
@@ -54,7 +45,7 @@ getListJobs = function(msg=NULL) {
   return(fun)
 }
 
-getKillJob = function(msg=NULL) {
+getKillJob = function(msg = NULL) {
   conf = getBatchJobsConf()
   cf = getClusterFunctions(conf)
   fun = cf$killJob
@@ -63,7 +54,7 @@ getKillJob = function(msg=NULL) {
   return(fun)
 }
 
-getBatchIds = function(reg, msg=NULL) {
+getBatchIds = function(reg, msg = NULL) {
   fun = getListJobs(msg)
   fun(getBatchJobsConf(), reg)
 }
@@ -77,12 +68,12 @@ seeder = function(reg, seed) {
      runif(1L)
   prev.seed = get(".Random.seed", envir = .GlobalEnv)
   prev.kind = RNGkind()
-  set.seed(seed, kind = reg$RNGkind[1L], normal.kind=reg$RNGkind[2L])
+  set.seed(seed, kind = reg$RNGkind[1L], normal.kind = reg$RNGkind[2L])
 
   return(list(
     reset = function() {
       RNGkind(kind = prev.kind[1L], normal.kind = prev.kind[2L])
-      assign(".Random.seed", prev.seed, envir=.GlobalEnv)
+      assign(".Random.seed", prev.seed, envir = .GlobalEnv)
     }))
 }
 
@@ -102,14 +93,12 @@ addIntModulo = function(x, y, mod = .Machine$integer.max) {
 }
 
 isOnSlave = function() {
-  getOption("BatchJobs.on.slave", default=FALSE)
+  getOption("BatchJobs.on.slave", default = FALSE)
 }
 
-setOnSlave = function(x, resources.path=as.character(NA)) {
-  checkArg(x, "logical", len=1L, na.ok=FALSE)
-  checkArg(resources.path, "character", len=1L, na.ok=TRUE)
-  options(BatchJobs.on.slave=x)
-  options(BatchJobs.resources.path=resources.path)
+setOnSlave = function(x, resources.path = as.character(NA)) {
+  options(BatchJobs.on.slave = x)
+  options(BatchJobs.resources.path = resources.path)
 }
 
 now = function() {
@@ -117,12 +106,12 @@ now = function() {
 }
 
 # FIXME BBmisc
-list2df = function(li, force.names=FALSE, strings.as.factors = default.stringsAsFactors()) {
+list2df = function(li, force.names = FALSE, strings.as.factors = default.stringsAsFactors()) {
   if (length(li) == 0L)
     return(makeDataFrame(0L, 0L))
 
   if (force.names) {
-    li = lapply(li, function(x) setNames(x, make.names(names2(x, ""), unique=TRUE)))
+    li = lapply(li, function(x) setNames(x, make.names(names2(x, ""), unique = TRUE)))
   }
 
   cols = unique(unlist(lapply(li, names)))
@@ -133,9 +122,9 @@ list2df = function(li, force.names=FALSE, strings.as.factors = default.stringsAs
   res = namedList(cols)
   for(col in cols) {
     tmp = lapply(li, function(it) it[[col]])
-    res[[col]] = simplify2array(replace(tmp, vapply(tmp, is.null, logical(1L)), NA))
+    res[[col]] = simplify2array(replace(tmp, vlapply(tmp, is.null), NA))
   }
-  as.data.frame(res, stringsAsFactors=strings.as.factors)
+  as.data.frame(res, stringsAsFactors = strings.as.factors)
 }
 
 getArgNames = function(args) {
@@ -149,9 +138,31 @@ getArgNames = function(args) {
 convertUseNames = function(use.names) {
   if (is.character(use.names) && length(use.names) == 1L && use.names %in% c("none", "ids", "names"))
     return(use.names)
-
-  # FIXME re-add this for the next release
-  # warning("Logical values for 'use.names' is deprecated and will be removed in a future version. Use 'none', 'ids' or 'names' instead.")
-  checkArg(use.names, "logical", len=1L, na.ok=FALSE)
+  assertFlag(use.names)
   c("none", "ids")[use.names+1L]
+}
+
+waitForFiles = function(fn, timeout = NA_real_, sleep = 1) {
+  if (is.na(timeout))
+    return(invisible(TRUE))
+
+  fn = fn[!file.exists(fn)]
+  if (length(fn)) {
+    start = now()
+    repeat {
+      Sys.sleep(sleep)
+      fn = fn[!file.exists(fn)]
+      if (!length(fn))
+        break
+      if (now() - start > timeout)
+        stopf("Error waiting for file system. File '%s' timed out after %.1f seconds", head(fn, 1L), timeout)
+    }
+  }
+
+  invisible(TRUE)
+}
+
+info = function(...) {
+  if (getOption("BatchJobs.verbose", default = TRUE))
+    message(sprintf(...))
 }

@@ -11,7 +11,7 @@
 #'   Should the result be simplified to a vector, matrix or higher dimensional array if possible?
 #'   Default is \code{TRUE}.
 #' @param use.names [\code{character(1)}]\cr
-#'   Name the results with job ids (\dQuote{ids}), stored job names (\dQuote{names}) 
+#'   Name the results with job ids (\dQuote{ids}), stored job names (\dQuote{names})
 #'   or return a unnamed result (\dQuote{none}).
 #'   Default is \code{ids}.
 #' @param missing.ok [\code{logical(1)}]\cr
@@ -21,7 +21,7 @@
 #' @return [\code{list}]. Results of jobs as list, possibly named by ids.
 #' @seealso \code{\link{reduceResults}}
 #' @export
-loadResults = function(reg, ids, part=NA_character_, simplify=FALSE, use.names="ids", missing.ok=FALSE) {
+loadResults = function(reg, ids, part = NA_character_, simplify = FALSE, use.names = "ids", missing.ok = FALSE) {
   checkRegistry(reg)
   syncRegistry(reg)
   if (missing(ids)) {
@@ -30,9 +30,9 @@ loadResults = function(reg, ids, part=NA_character_, simplify=FALSE, use.names="
     ids = checkIds(reg, ids)
   }
   checkPart(reg, part)
-  checkArg(simplify, "logical", len=1L, na.ok=FALSE)
+  assertFlag(simplify)
   use.names = convertUseNames(use.names)
-  checkArg(missing.ok, "logical", len=1L, na.ok=FALSE)
+  assertFlag(missing.ok)
 
   res = getResults(reg, ids, part, missing.ok)
   names(res) = switch(use.names,
@@ -45,14 +45,14 @@ loadResults = function(reg, ids, part=NA_character_, simplify=FALSE, use.names="
   return(res)
 }
 
-getResults = function(reg, ids, part=NA_character_, missing.ok=FALSE) {
+getResults = function(reg, ids, part = NA_character_, missing.ok = FALSE) {
   if (reg$multiple.result.files) {
     read.files = function(id, dir, pattern) {
-      fns = list.files(dir, pattern, full.names=TRUE)
+      fns = list.files(dir, pattern, full.names = TRUE)
       found.parts = sub(".+-(.+)\\.RData$", "\\1", basename(fns))
       if(length(found.parts) == 0L) {
         if (missing.ok)
-         return(list()) 
+         return(list())
         stop("No partial result files found for job with id ", id)
       }
 
@@ -66,7 +66,7 @@ getResults = function(reg, ids, part=NA_character_, missing.ok=FALSE) {
       patterns = sprintf("^%i-result-(%s)\\.RData$", ids, collapse(part, "|"))
     }
 
-    return(mapply(read.files, id = ids, dir=dirs, pattern=patterns, SIMPLIFY=FALSE, USE.NAMES=FALSE))
+    return(mapply(read.files, id = ids, dir = dirs, pattern = patterns, SIMPLIFY = FALSE, USE.NAMES = FALSE))
   }
 
   fns = getResultFilePath(reg, ids, part)

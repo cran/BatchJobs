@@ -7,7 +7,7 @@ resrc = function(res.new) {
 
 saveResources = function(reg, resources, timestamp = now()) {
   fn = getResourcesFilePath(reg, timestamp)
-  save2(file=fn, resources=resources)
+  save2(file = fn, resources = resources)
   return(timestamp)
 }
 
@@ -36,29 +36,28 @@ getResources = function() {
 #'   Ids of jobs.
 #'   Default is all submitted jobs.
 #' @param as.list [\code{integer(1)}]\cr
-#'   If \code{FALSE}, \code{rbind.fill} is called on the result to
-#'   convert it to a data.frame.
+#'   If \code{FALSE} a data.frame will be returned.
 #'   Default is \code{TRUE}.
 #' @return [\code{list} | \code{data.frame}]. List (or data.frame) of resource lists as passed to \code{\link{submitJobs}}.
 #' @export
-getJobResources = function(reg, ids, as.list=TRUE) {
+getJobResources = function(reg, ids, as.list = TRUE) {
   checkRegistry(reg)
   syncRegistry(reg)
   if (missing(ids)) {
     ids = dbFindSubmitted(reg)
   } else {
     ids = checkIds(reg, ids)
-    nsub = dbFindSubmitted(reg, ids, negate=TRUE)
-    if (length(nsub > 0))
+    nsub = dbFindSubmitted(reg, ids, negate = TRUE)
+    if (length(nsub) > 0L)
       stopf("Some of your jobs have not been submitted, so no resources are available, e.g. for id=%i", nsub[1])
   }
   query = sprintf("SELECT job_id, resources_timestamp FROM %s_job_status", reg$id)
   df = dbSelectWithIds(reg, query, ids)
   res = namedList(df$job_id)
   for(ts in unique(df$resources_timestamp)) {
-    res[df$resources_timestamp == ts] = load2(getResourcesFilePath(reg, ts), simplify=FALSE)
+    res[df$resources_timestamp == ts] = load2(getResourcesFilePath(reg, ts), simplify = FALSE)
   }
   if (!as.list)
-    res = do.call(rbind.fill, lapply(res, as.data.frame))
+    res = list2df(res)
   return(res)
 }

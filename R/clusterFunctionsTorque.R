@@ -1,5 +1,6 @@
-#' Create cluster functions for torque-based systems.
+#' @title Create cluster functions for torque-based systems.
 #'
+#' @description
 #' Job files are created based on the brew template
 #' \code{template.file}. This file is processed with brew and then
 #' submitted to the queue using the \code{qsub} command. Jobs are
@@ -15,25 +16,26 @@
 #' Examples can be found on
 #' \url{https://github.com/tudo-r/BatchJobs/tree/master/examples/cfTorque}.
 #'
-#' @param template.file [\code{character(1)}]\cr
-#'   Path to a brew template file that is used for the PBS job file.
-#' @return [\code{\link{ClusterFunctions}}].
+#' @template arg_template
+#' @template arg_list_jobs_cmd
+#' @template ret_cf
 #' @export
-makeClusterFunctionsTorque = function(template.file) {
+makeClusterFunctionsTorque = function(template.file, list.jobs.cmd = c("qselect", "-u $USER", "-s EHQRTW")) {
+  assertCharacter(list.jobs.cmd, min.len = 1L, any.missing = FALSE)
   template = cfReadBrewTemplate(template.file)
 
   submitJob = function(conf, reg, job.name, rscript, log.file, job.dir, resources, arrayjobs) {
     outfile = cfBrewTemplate(conf, template, rscript, "pbs")
-    res = runOSCommandLinux("qsub", outfile, stop.on.exit.code=FALSE)
+    res = runOSCommandLinux("qsub", outfile, stop.on.exit.code = FALSE)
 
     max.jobs.msg = "Maximum number of jobs already in queue"
-    output = collapse(res$output, sep="\n")
-    if (grepl(max.jobs.msg, output, fixed=TRUE)) {
-      makeSubmitJobResult(status=1L, batch.job.id=NA_character_, msg=max.jobs.msg)
+    output = collapse(res$output, sep = "\n")
+    if (grepl(max.jobs.msg, output, fixed = TRUE)) {
+      makeSubmitJobResult(status = 1L, batch.job.id = NA_character_, msg = max.jobs.msg)
     } else if (res$exit.code > 0L) {
       cfHandleUnknownSubmitError("qsub", res$exit.code, res$output)
     } else {
-      makeSubmitJobResult(status=0L, batch.job.id=str_trim(output))
+      makeSubmitJobResult(status = 0L, batch.job.id = str_trim(output))
     }
   }
 
@@ -43,11 +45,11 @@ makeClusterFunctionsTorque = function(template.file) {
 
   listJobs = function(conf, reg) {
     # Result is lines of fully quantified batch.job.ids
-    runOSCommandLinux("qselect", c("-u $USER", "-s EHQRTW"))$output
+    runOSCommandLinux(list.jobs.cmd[1L], list.jobs.cmd[-1L])$output
   }
 
   getArrayEnvirName = function() "PBS_ARRAYID"
 
-  makeClusterFunctions(name="Torque", submitJob=submitJob, killJob=killJob,
-                       listJobs=listJobs, getArrayEnvirName = getArrayEnvirName)
+  makeClusterFunctions(name = "Torque", submitJob = submitJob, killJob = killJob,
+                       listJobs = listJobs, getArrayEnvirName = getArrayEnvirName)
 }

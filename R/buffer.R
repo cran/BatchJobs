@@ -1,14 +1,22 @@
 # a simple preallocated stack.
-buffer = function(type, capacity, value=identity, ...) {
-  st = vector(type, capacity)
-  n = 0L
+buffer = function(type = "list", capacity = 0L, value = TRUE, init = NULL, ...) {
+  if (is.null(init)) {
+    st = vector(type, capacity)
+    n = 0L
+  } else {
+    st = init
+    n = length(init)
+  }
+  rm(type)
+  force(capacity)
+  force(value)
+  rm(init)
 
   get = function() {
     head(st, n)
   }
 
   push = function(x) {
-    force(x)
     if (n == capacity)
       clear()
     n <<- n + 1L
@@ -46,5 +54,5 @@ buffer = function(type, capacity, value=identity, ...) {
     n == capacity
   }
 
-  list(get=get, push=push, pop=pop, top=top, clear=clear, pos=pos, empty=empty, full=full)
+  list(get = get, push = push, pop = pop, top = top, clear = clear, pos = pos, empty = empty, full = full)
 }

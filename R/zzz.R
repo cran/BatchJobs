@@ -14,19 +14,21 @@
 NULL
 
 #' @import BBmisc
+#' @import checkmate
 #' @import utils
+#' @import stats
 #' @import DBI
 #' @import RSQLite
 #' @import fail
+#' @import methods
 #' @importFrom digest digest
 #' @importFrom brew brew
 #' @importFrom sendmailR sendmail
-#' @importFrom plyr rbind.fill
 #' @importFrom stringr str_extract
 #' @importFrom stringr str_trim
 NULL
 
-.BatchJobs.conf <- new.env()
+.BatchJobs.conf = new.env()
 
 .onAttach = function(libname, pkgname) {
   if (!isOnSlave()) {
@@ -36,12 +38,14 @@ NULL
     } else {
       readConfs(file.path(libname, pkgname))
     }
-    packageStartupMessage(printableConf(getConfig()))
+    if (getOption("BatchJobs.verbose", default = TRUE))
+      packageStartupMessage(printableConf(getConfig()))
   }
 }
 
 .onLoad = function(libname, pkgname) {
-  options(BatchJobs.check.posix = getOption("BatchJobs.check.posix", default = TRUE))
+# checking for posix might create problem in windwos tests
+  options(BatchJobs.check.posix = getOption("BatchJobs.check.posix", default = !isWindows()))
   if (!isOnSlave()) {
     assignConfDefaults()
   }

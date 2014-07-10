@@ -1,5 +1,6 @@
-#' Create cluster functions for Sun Grid Engine systems.
+#' @title Create cluster functions for Sun Grid Engine systems.
 #'
+#' @description
 #' Job files are created based on the brew template
 #' \code{template.file}. This file is processed with brew and then
 #' submitted to the queue using the \code{qsub} command. Jobs are
@@ -15,24 +16,25 @@
 #' Examples can be found on
 #' \url{https://github.com/tudo-r/BatchJobs/tree/master/examples/cfSGE}.
 #'
-#' @param template.file [\code{character(1)}]\cr
-#'   Path to a brew template file that is used for the job file.
-#' @return [\code{\link{ClusterFunctions}}].
+#' @template arg_template
+#' @template arg_list_jobs_cmd
+#' @template ret_cf
 #' @export
-makeClusterFunctionsSGE = function(template.file) {
+makeClusterFunctionsSGE = function(template.file, list.jobs.cmd = c("qstat",  "-u $USER")) {
+  assertCharacter(list.jobs.cmd, min.len = 1L, any.missing = FALSE)
   template = cfReadBrewTemplate(template.file)
 
   submitJob = function(conf, reg, job.name, rscript, log.file, job.dir, resources, arrayjobs) {
     outfile = cfBrewTemplate(conf, template, rscript, "job")
     # returns: "Your job 240933 (\"sleep 60\") has been submitted"
-    res = runOSCommandLinux("qsub", outfile, stop.on.exit.code=FALSE)
+    res = runOSCommandLinux("qsub", outfile, stop.on.exit.code = FALSE)
     # FIXME filled queues
     if (res$exit.code > 0L) {
       cfHandleUnknownSubmitError("qsub", res$exit.code, res$output)
     } else {
       # collapse output strings and first number in string is batch.job.id
-      batch.job.id = str_extract(collapse(res$output, sep=" "), "\\d+")
-      makeSubmitJobResult(status=0L, batch.job.id=batch.job.id)
+      batch.job.id = str_extract(collapse(res$output, sep = " "), "\\d+")
+      makeSubmitJobResult(status = 0L, batch.job.id = batch.job.id)
     }
   }
 
@@ -45,7 +47,8 @@ makeClusterFunctionsSGE = function(template.file) {
     # job-ID  prior   name       user         state submit/start at     queue                          slots ja-task-ID
     #-----------------------------------------------------------------------------------------------------------------
     #  240935 0.00000 sleep 60   matthias     qw    04/03/2012 15:45:54                                    1
-    res = runOSCommandLinux("qstat", "-u $USER")
+    # res = runOSCommandLinux("qstat", "-u $USER")
+    res = runOSCommandLinux(list.jobs.cmd[1L], list.jobs.cmd[-1L])$output
     if (res$exit.code > 0L)
       stopf("qstat produced exit code %i; output %s", res$exit.code, res$output)
 
@@ -57,6 +60,6 @@ makeClusterFunctionsSGE = function(template.file) {
 
   getArrayEnvirName = function() "SGE_TASK_ID"
 
-  makeClusterFunctions(name="SGE", submitJob=submitJob, killJob=killJob,
-                       listJobs=listJobs, getArrayEnvirName = getArrayEnvirName)
+  makeClusterFunctions(name = "SGE", submitJob = submitJob, killJob = killJob,
+                       listJobs = listJobs, getArrayEnvirName = getArrayEnvirName)
 }

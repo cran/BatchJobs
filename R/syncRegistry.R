@@ -8,10 +8,10 @@ syncRegistry = function(reg) {
     if (length(fns) == 0L)
       return(invisible(TRUE))
 
-    message("Syncing registry ...")
+    info("Syncing registry ...")
 
     queries = lapply(fns, readSQLFile)
-    ok = !vapply(queries, isFALSE, TRUE)
+    ok = !vlapply(queries, isFALSE)
     tryCatch(dbDoQueries(reg, unlist(queries[ok]), "rw"),
              error = function(e) stopf("Error syncing registry (%s)", e))
 
@@ -25,7 +25,7 @@ syncRegistry = function(reg) {
 }
 
 readSQLFile = function(con) {
-  x = try(readLines(con), silent=TRUE)
+  x = try(readLines(con), silent = TRUE)
   n = length(x)
   if (is.error(x) || n == 0L || x[n] != "--EOF--")
     return(FALSE)
@@ -41,6 +41,4 @@ useStagedQueries = function() {
   getBatchJobsConf()$staged.queries
 }
 
-getOrderCharacters = function() {
-  setNames(letters[1L:5L], c("submitted", "started", "done", "error", "killed"))
-}
+.OrderChars = setNames(letters[1L:6L], c("first", "submitted", "started", "done", "error", "last"))

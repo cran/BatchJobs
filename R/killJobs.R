@@ -23,8 +23,8 @@
 #' @export
 #' @examples
 #' \dontrun{
-#' reg <- makeRegistry(id="BatchJobsExample", file.dir=tempfile(), seed=123)
-#' f <- function(x) Sys.sleep(x)
+#' reg = makeRegistry(id = "BatchJobsExample", file.dir = tempfile(), seed = 123)
+#' f = function(x) Sys.sleep(x)
 #' batchMap(reg, f, 1:10 + 5)
 #' submitJobs(reg)
 #'
@@ -49,10 +49,10 @@ killJobs = function(reg, ids) {
                              cols = c("job_id", "batch_job_id", "submitted", "started", "done", "error"))
 
   # print first summary information on jobs to kill
-  messagef("Trying to kill %i jobs.", length(ids))
-  messagef("Jobs on system: %i", nrow(data))
-  messagef("Of these: %i not submitted, %i with no batch.job.id, %i already terminated",
-           sum(is.na(data$submitted)), sum(is.na(data$batch_job_id)), sum(!is.na(data$done) | !is.na(data$error)))
+  info("Trying to kill %i jobs.", length(ids))
+  info("Jobs on system: %i", nrow(data))
+  info("Of these: %i not submitted, %i with no batch.job.id, %i already terminated",
+    sum(is.na(data$submitted)), sum(is.na(data$batch_job_id)), sum(!is.na(data$done) | !is.na(data$error)))
 
 
   # subset data: restrict to jobs submitted, not done, no error, has bji
@@ -61,21 +61,21 @@ killJobs = function(reg, ids) {
                 select = c("job_id", "batch_job_id", "started"))
 
   # kill queued jobs first, otherwise they might get started while killing running jobs
-  data = data[order(data$started, na.last = FALSE),, drop=FALSE]
+  data = data[order(data$started, na.last = FALSE),, drop = FALSE]
 
   ids = data$job_id
   bjids = unique(data$batch_job_id)
-  messagef("Killing real batch jobs: %i", length(bjids))
+  info("Killing real batch jobs: %i", length(bjids))
 
   if (length(bjids) == 0L) {
-    message("No batch jobs to kill.")
+    info("No batch jobs to kill.")
     return(invisible(integer(0L)))
   }
 
   doKill = function(bjids) {
     n = length(bjids)
     old.warn = getOption("warn")
-    bar = makeProgressBar(min=0L, max=n, label="killJobs")
+    bar = makeProgressBar(min = 0L, max = n, label = "killJobs")
     on.exit({ options(warn = old.warn); bar$kill() })
 
     options(warn = 0L)
@@ -95,12 +95,12 @@ killJobs = function(reg, ids) {
   }
 
   # first try to kill
-  message(clipString(collapse(bjids), 200L, ",..."))
+  info(clipString(collapse(bjids), 200L, ",..."))
   bjids.notkilled = doKill(bjids)
 
   # second try to kill
   if (length(bjids.notkilled) > 0L) {
-    messagef("Could not kill %i batch jobs, trying again.", length(bjids.notkilled))
+    info("Could not kill %i batch jobs, trying again.", length(bjids.notkilled))
     Sys.sleep(2)
     bjids.notkilled = doKill(bjids.notkilled)
   }
@@ -110,12 +110,12 @@ killJobs = function(reg, ids) {
     fn = file.path(reg$file.dir, sprintf("killjobs_failed_ids_%i", now()))
     warningf("Could not kill %i batch jobs, kill them manually!\nTheir ids have been saved in %s.",
       length(bjids.notkilled), fn)
-      writeLines(as.character(bjids.notkilled), con=fn)
+      writeLines(as.character(bjids.notkilled), con = fn)
   }
 
   # reset killed jobs
   ids = ids[data$batch_job_id %nin% bjids.notkilled]
-  messagef("Resetting %i jobs in DB.", length(ids))
-  dbSendMessage(reg, dbMakeMessageKilled(reg, ids), staged = useStagedQueries())
+  info("Resetting %i jobs in DB.", length(ids))
+  dbSendMessage(reg, dbMakeMessageKilled(reg, ids, type = "last"))
   invisible(ids)
 }

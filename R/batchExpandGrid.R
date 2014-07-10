@@ -16,20 +16,20 @@
 #'   Default is empty list.
 #' @return [\code{data.frame}]. Expanded grid of combinations produced by \code{\link{expand.grid}}.
 #' @examples
-#' reg <- makeRegistry(id="BatchJobsExample", file.dir=tempfile(), seed=123)
-#' f <- function(x, y, z) x * y  + z
-#' batchExpandGrid(reg, f, x=1:2, y=1:3, more.args=list(z=10))
+#' reg = makeRegistry(id = "BatchJobsExample", file.dir = tempfile(), seed = 123)
+#' f = function(x, y, z) x * y  + z
+#' batchExpandGrid(reg, f, x = 1:2, y = 1:3, more.args = list(z = 10))
 #' submitJobs(reg)
-#' reduceResultsMatrix(reg, fun=function(job, res) cbind(job$pars, res))
+#' reduceResultsMatrix(reg, fun = function(job, res) cbind(job$pars, res))
 #' @export
-batchExpandGrid = function(reg, fun, ..., more.args=list()) {
-  checkRegistry(reg, strict=TRUE)
-  checkArg(fun, cl="function")
+batchExpandGrid = function(reg, fun, ..., more.args = list()) {
+  checkRegistry(reg, strict = TRUE)
+  assertFunction(fun)
   args = list(...)
   ns = names(args)
   if (length(args) == 0L)
     return(invisible(integer(0L)))
-  if(!all(vapply(args, is.vector, logical(1L))))
+  if(!all(vlapply(args, is.vector)))
     stop("All args in '...' must be vectors!")
   checkMoreArgs(more.args)
   reserved = c("KEEP.OUT.ATTRS", "stringsAsFactors")
@@ -41,6 +41,6 @@ batchExpandGrid = function(reg, fun, ..., more.args=list()) {
   grid = do.call(expand.grid, args)
   if (is.null(ns))
     colnames(grid) = NULL
-  do.call(batchMap, c(as.list(grid), list(reg=reg, fun=fun, more.args=more.args)))
+  do.call(batchMap, c(as.list(grid), list(reg = reg, fun = fun, more.args = more.args)))
   return(grid)
 }

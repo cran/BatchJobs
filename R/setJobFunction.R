@@ -25,18 +25,18 @@
 #'   Default is \code{FALSE}.
 #' @return Nothing.
 #' @export
-setJobFunction = function(reg, ids, fun, more.args=list(), reset=TRUE, force=FALSE) {
-  checkRegistry(reg, strict=TRUE)
+setJobFunction = function(reg, ids, fun, more.args = list(), reset = TRUE, force = FALSE) {
+  checkRegistry(reg, strict = TRUE)
   syncRegistry(reg)
-  checkArg(fun, cl="function")
+  assertFunction(fun)
   checkMoreArgs(more.args)
-  checkArg(reset, cl="logical", len=1L, na.ok=FALSE)
-  checkArg(force, cl="logical", len=1L, na.ok=FALSE)
+  assertFlag(reset)
+  assertFlag(force)
   UseMethod("setJobFunction")
 }
 
-#' @S3method setJobFunction Registry
-setJobFunction.Registry = function(reg, ids, fun, more.args=list(), reset=TRUE, force=FALSE) {
+#' @export
+setJobFunction.Registry = function(reg, ids, fun, more.args = list(), reset = TRUE, force = FALSE) {
   if (missing(ids)) {
     # nothing to do ...
     return(invisible(NULL))
@@ -46,6 +46,6 @@ setJobFunction.Registry = function(reg, ids, fun, more.args=list(), reset=TRUE, 
   fun.id = saveFunction(reg, fun, more.args)
   dbSetJobFunction(reg, ids, fun.id)
   if (reset)
-    resetJobs(reg, ids, force=force)
+    resetJobs(reg, ids, force = force)
   invisible(NULL)
 }

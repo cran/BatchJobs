@@ -1,39 +1,39 @@
 makeRegistryInternal = function(id, file.dir, sharding, work.dir,
   multiple.result.files, seed, packages, src.dirs, src.files) {
-  checkArg(id, cl = "character", len = 1L, na.ok = FALSE)
-  checkIdValid(id, allow.minus=FALSE)
-  checkArg(file.dir, cl = "character", len = 1L, na.ok = FALSE)
-  checkArg(sharding, cl = "logical", len = 1L, na.ok = FALSE)
+  checkIdValid(id, allow.minus = FALSE)
+  assertString(file.dir)
+  assertFlag(sharding)
   if (missing(work.dir))
     work.dir = getwd()
-  checkArg(work.dir, cl = "character", len = 1L, na.ok = FALSE)
-  checkArg(multiple.result.files, cl = "logical", len = 1L, na.ok = FALSE)
+  assertString(work.dir)
+  assertFlag(multiple.result.files)
 
-  if (missing(seed)) {
-    seed = getRandomSeed()
-  } else {
-    seed = convertInteger(seed)
-    checkArg(seed, cl = "integer", len = 1L, lower = 1L, na.ok = FALSE)
-  }
-  checkArg(packages, cl = "character", na.ok = FALSE)
+  seed = if (missing(seed)) getRandomSeed() else asInt(seed)
+
+  assertCharacter(packages, any.missing = FALSE)
   packages = union(packages, "BatchJobs")
-  requirePackages(packages, stop=TRUE, suppress.warnings=TRUE)
-  checkArg(src.dirs, cl = "character", na.ok = FALSE)
-  checkArg(src.files, cl = "character", na.ok = FALSE)
-  sourceRegistryFilesInternal(work.dir, src.dirs, src.files)
+  requirePackages(packages, stop = TRUE, suppress.warnings = TRUE)
+  assertCharacter(src.dirs, any.missing = FALSE)
+  assertCharacter(src.files, any.missing = FALSE)
 
   # make paths absolute to be sure. otherwise cfSSH wont work for example
-  checkDir(file.dir, create=TRUE, check.empty=TRUE, check.posix=TRUE, msg=TRUE)
+  # also check the dirs
+  # file dir
+  checkDir(file.dir, create = TRUE, check.empty = TRUE, check.posix = TRUE, msg = TRUE)
   file.dir = makePathAbsolute(file.dir)
+  # job dir
   job.dir = getJobParentDir(file.dir)
-  checkDir(job.dir, create=TRUE, check.empty=TRUE)
+  checkDir(job.dir, create = TRUE, check.empty = TRUE)
+  # fun dir
   fun.dir = getFunDir(file.dir)
-  checkDir(fun.dir, create=TRUE, check.empty=TRUE)
-  checkDir(getResourcesDir(file.dir), create=TRUE, check.empty=TRUE)
-  checkDir(getPendingDir(file.dir), create=TRUE, check.empty=TRUE)
-  checkDir(getExportDir(file.dir), create=TRUE, check.empty=TRUE)
-  checkDir(work.dir, check.posix=TRUE)
+  checkDir(fun.dir, create = TRUE, check.empty = TRUE)
+  # resources, pending, exports, work.dir
+  checkDir(getResourcesDir(file.dir), create = TRUE, check.empty = TRUE)
+  checkDir(getPendingDir(file.dir), create = TRUE, check.empty = TRUE)
+  checkDir(getExportDir(file.dir), create = TRUE, check.empty = TRUE)
+  checkDir(work.dir, check.posix = TRUE)
   work.dir = makePathAbsolute(work.dir)
+  sourceRegistryFilesInternal(work.dir, src.dirs, src.files)
 
   packages = setNames(lapply(packages, function(pkg) list(version = packageVersion(pkg))), packages)
 
@@ -90,17 +90,22 @@ makeRegistryInternal = function(id, file.dir, sharding, work.dir,
 #'   Packages that will always be loaded on each node.
 #'   Default is \code{character(0)}.
 #' @param src.dirs [\code{character}]\cr
-#'   Directories relative to your \code{work.dir} containing R scripts
+#'   Directories containing R scripts
 #'   to be sourced on registry load (both on slave and master).
 #'   Files not matching the pattern \dQuote{\\.[Rr]$} are ignored.
 #'   Useful if you have many helper functions that are needed during the execution of your jobs.
 #'   These files should only contain function definitions and no executable code.
 #'   Default is \code{character(0)}.
 #' @param src.files [\code{character}]\cr
-#'   R scripts files relative to your \code{work.dir}
+#'   R scripts files
 #'   to be sourced on registry load (both on slave and master).
 #'   Useful if you have many helper functions that are needed during the execution of your jobs.
-#'   These files should only contain function definitions and no executable code.
+#'   These files should only contain function and constant definitions and no long running, executable code.
+#'   These paths are considered to be relative to your \code{work.dir}.
+#'   As a last remedy in problematic cases you can use absolute paths, by passing paths that
+#'   start with \dQuote{/}, see the comment about \code{file.dir} and \code{work.dir} above,
+#'   where we allow the same thing.
+#'   Note that this is a less portable approach and therefore usually a less good idea.
 #'   Default is \code{character(0)}.
 #' @param skip [\code{logical(1)}]\cr
 #'   Skip creation of a new registry if a registry is found in \code{file.dir}.
@@ -109,17 +114,19 @@ makeRegistryInternal = function(id, file.dir, sharding, work.dir,
 #' @aliases Registry
 #' @export
 #' @examples
-#' reg <- makeRegistry(id="BatchJobsExample", file.dir=tempfile(), seed=123)
+#' reg = makeRegistry(id = "BatchJobsExample", file.dir = tempfile(), seed = 123)
 #' print(reg)
-makeRegistry = function(id, file.dir, sharding=TRUE, work.dir, multiple.result.files=FALSE,
-                        seed, packages=character(0L), src.dirs=character(0L), src.files=character(0L), skip=TRUE) {
+makeRegistry = function(id, file.dir, sharding = TRUE, work.dir, multiple.result.files = FALSE,
+                        seed, packages = character(0L), src.dirs = character(0L), src.files = character(0L),
+                        skip = TRUE) {
   if (missing(file.dir))
     file.dir = file.path(getwd(), paste0(id, "-files"))
-  checkArg(skip, "logical", len=1L, na.ok=FALSE)
+  assertFlag(skip)
   if (skip && isRegistryDir(file.dir))
     return(loadRegistry(file.dir = file.dir))
 
-  reg = makeRegistryInternal(id, file.dir, sharding, work.dir, multiple.result.files, seed, packages, src.dirs, src.files)
+  reg = makeRegistryInternal(id, file.dir, sharding, work.dir, multiple.result.files, seed, packages,
+    src.dirs, src.files)
 
   dbCreateJobStatusTable(reg)
   dbCreateJobDefTable(reg)
@@ -127,7 +134,7 @@ makeRegistry = function(id, file.dir, sharding=TRUE, work.dir, multiple.result.f
   reg
 }
 
-#' @S3method print Registry
+#' @export
 print.Registry = function(x, ...) {
   cat("Job registry: ",  x$id, "\n")
   cat("  Number of jobs: ", dbGetJobCount(x), "\n")
@@ -149,13 +156,13 @@ loadRegistry = function(file.dir, work.dir) {
   fn = getRegistryFilePath(file.dir)
   if (!file.exists(fn))
     stopf("No registry found in '%s'", file.dir)
-  message("Loading registry: ", fn)
+  info("Loading registry: %s", fn)
   reg = load2(fn, "reg")
 
-  requirePackages(names(reg$packages), why=sprintf("registry %s", reg$id))
+  requirePackages(names(reg$packages), why = sprintf("registry %s", reg$id))
 
   if (!isOnSlave()) {
-    # FIXME check that no jobs are running, if possible, before updating
+    # FIXME: check that no jobs are running, if possible, before updating
     adjusted = adjustRegistryPaths(reg, file.dir, work.dir)
     if (!isFALSE(adjusted))
       reg = adjusted
@@ -177,8 +184,8 @@ loadRegistry = function(file.dir, work.dir) {
 
 saveRegistry = function(reg) {
   fn = getRegistryFilePath(reg$file.dir)
-  message("Saving registry: ", fn)
-  save(file=fn, reg)
+  info("Saving registry: %s", fn)
+  save(file = fn, reg)
 }
 
 isRegistryDir = function(dir) {

@@ -13,16 +13,16 @@
 #' @return [any]. Result of job.
 #' @seealso \code{\link{reduceResults}}
 #' @export
-loadResult = function(reg, id, part=NA_character_, missing.ok=FALSE) {
+loadResult = function(reg, id, part = NA_character_, missing.ok = FALSE) {
   checkRegistry(reg)
   syncRegistry(reg)
   id = checkId(reg, id)
   checkPart(reg, part)
-  checkArg(missing.ok, "logical", len=1L, na.ok=FALSE)
+  assertFlag(missing.ok)
 
   getResult(reg, id, part, missing.ok)
 }
 
-getResult = function(reg, id, part=NA_character_, missing.ok=FALSE) {
+getResult = function(reg, id, part = NA_character_, missing.ok = FALSE) {
   getResults(reg, id, part, missing.ok)[[1L]]
 }

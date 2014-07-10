@@ -26,37 +26,36 @@
 #' @export
 #' @examples
 #' # generating example results:
-#' reg1 <- makeRegistry(id="BatchJobsExample1", file.dir=tempfile(), seed=123)
-#' f <- function(x) x^2
+#' reg1 = makeRegistry(id = "BatchJobsExample1", file.dir = tempfile(), seed = 123)
+#' f = function(x) x^2
 #' batchMap(reg1, f, 1:20)
 #' submitJobs(reg1)
 #'
 #' # define function to reduce on slave, we want to sum the squares
-#' myreduce <- function(aggr, job, res) aggr + res
+#' myreduce = function(aggr, job, res) aggr + res
 #'
 #' # sum 5 results on each slave process, i.e. 4 jobs
-#' reg2 <- makeRegistry(id="BatchJobsExample2", file.dir=tempfile(), seed=123)
-#' batchReduceResults(reg1, reg2, fun=myreduce, init=0, block.size=5)
+#' reg2 = makeRegistry(id = "BatchJobsExample2", file.dir = tempfile(), seed = 123)
+#' batchReduceResults(reg1, reg2, fun = myreduce, init = 0, block.size = 5)
 #' submitJobs(reg2)
 #'
 #' # now reduce one final time on master
-#' reduceResults(reg2, fun=myreduce)
-batchReduceResults = function(reg, reg2, fun, ids, part=NA_character_, init, block.size, more.args=list()) {
+#' reduceResults(reg2, fun = myreduce)
+batchReduceResults = function(reg, reg2, fun, ids, part = NA_character_, init, block.size, more.args = list()) {
   checkRegistry(reg)
   checkRegistry(reg2)
   syncRegistry(reg)
   syncRegistry(reg2)
-  checkArg(fun, formals=c("aggr", "job", "res"))
+  assertFunction(fun, c("aggr", "job", "res"))
   if (missing(ids)) {
     ids = dbGetJobIdsIfAllDone(reg)
   } else {
     ids = checkIds(reg, ids)
-    if (length(dbFindDone(reg, ids, negate=TRUE)) > 0L)
+    if (length(dbFindDone(reg, ids, negate = TRUE)) > 0L)
       stop("Not all jobs with corresponding ids finished (yet)!")
   }
-  block.size = convertInteger(block.size)
-  checkArg(block.size, "integer", len=1L, na.ok=FALSE)
-  checkMoreArgs(more.args, reserved=c("..reg", "..fun", "..part"))
+  block.size = asCount(block.size)
+  checkMoreArgs(more.args, reserved = c("..reg", "..fun", "..part"))
 
   if (dbGetJobCount(reg2) > 0L)
     stop("Registry 'reg2' is not empty!")
@@ -65,13 +64,13 @@ batchReduceResults = function(reg, reg2, fun, ids, part=NA_character_, init, blo
   reg2$packages = insert(reg2$packages, reg$packages)
   saveRegistry(reg2)
 
-  batchReduce(reg2, batchReduceResultsWrapper, ids, init=init, block.size=block.size,
-    more.args=c(more.args, list(..reg=reg, ..fun=fun, ..part=part)))
+  batchReduce(reg2, batchReduceResultsWrapper, ids, init = init, block.size = block.size,
+    more.args = c(more.args, list(..reg = reg, ..fun = fun, ..part = part)))
 }
 
 batchReduceResultsWrapper = function(aggr, x, ..reg, ..fun, ..part) {
   # x is id
   # use lazy evaluation, if fun doesn't access job or res (unlikely)
-  ..fun(aggr = aggr, job = getJob(..reg, x, check.id=FALSE),
+  ..fun(aggr = aggr, job = getJob(..reg, x, check.id = FALSE),
         res = getResult(..reg, x, ..part))
 }

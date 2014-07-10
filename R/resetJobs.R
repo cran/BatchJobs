@@ -24,26 +24,26 @@
 #'   Default is \code{FALSE}.
 #' @return Vector of reseted job ids.
 #' @export
-resetJobs = function(reg, ids, force=FALSE) {
+resetJobs = function(reg, ids, force = FALSE) {
   checkRegistry(reg)
   syncRegistry(reg)
   if (missing(ids) || length(ids) == 0L)
     return(integer(0L))
   ids = checkIds(reg, ids)
-  checkArg(force, cl="logical", len=1L, na.ok=FALSE)
+  assertFlag(force)
 
   if (!force) {
     if(is.null(getListJobs()) || is.null(getKillJob())) {
       stop("Listing or killing of jobs not supported by your cluster functions\n",
-           "You need to set force=TRUE to reset jobs, but see the warning in ?resetJobs")
+           "You need to set force = TRUE to reset jobs, but see the warning in ?resetJobs")
     }
     running = dbFindOnSystem(reg, ids)
     if (length(running) > 0L)
-      stopf("Can't reset jobs which are live on system running. You have to kill them first!\nIds: %s",
+      stopf("Can't reset jobs which are live on system. You have to kill them first!\nIds: %s",
             collapse(running))
   }
 
-  messagef("Resetting %i jobs in DB.", length(ids))
+  info("Resetting %i jobs in DB.", length(ids))
   dbSendMessage(reg, dbMakeMessageKilled(reg, ids), staged = FALSE)
   invisible(ids)
 }
