@@ -62,6 +62,11 @@ updateRegistry.Registry = function(reg) {
     reg$src.files = character(0L)
   }
 
+  if (version.reg < package_version("1.4")) {
+    query = sprintf("ALTER TABLE %s_job_status ADD COLUMN memory REAL", reg$id)
+    dbDoQuery(reg, query, flags = "rwc")
+  }
+
   reg$packages$BatchJobs$version = version.pkg
   reg
 }
@@ -70,7 +75,7 @@ adjustRegistryPaths = function(reg, file.dir, work.dir) {
   adjusted = FALSE
 
   # adjust file dir if necessary
-  file.dir = makePathAbsolute(file.dir)
+  file.dir = sanitizePath(file.dir, make.absolute = TRUE)
   if (!isDirectory(file.dir))
     stopf("file.dir does not exist or is not a directory: %s", file.dir)
   if (reg$file.dir != file.dir) {
@@ -83,7 +88,7 @@ adjustRegistryPaths = function(reg, file.dir, work.dir) {
     if (!isDirectory(reg$work.dir))
       warningf("The currently set work.dir '%s' does not exists. Use option 'work.dir' in loadRegistry to change it.", reg$work.dir)
   } else {
-    work.dir = makePathAbsolute(work.dir)
+    work.dir = sanitizePath(work.dir, make.absolute = TRUE)
     if (!isDirectory(work.dir))
       stopf("work.dir does not exist or is not a directory: %s", work.dir)
     reg$work.dir = work.dir

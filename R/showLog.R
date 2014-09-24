@@ -1,5 +1,6 @@
 #' Display the contents of a log file.
 #'
+#' @description
 #' Display the contents of a log file, useful in case of errors.
 #'
 #' Note this rare special case: When you use chunking, submit some jobs, some jobs fail,
@@ -19,8 +20,8 @@
 #'   or \dQuote{vim}, the correct part of the log file will be shown.
 #'   Otherwise you find information about the correct part in the beginning of the displayed file.
 #' @return [\code{character(1)}]. Invisibly returns path to log file.
+#' @family debug
 #' @export
-#' @seealso \code{\link{grepLogs}}, \code{\link{getErrorMessages}}
 showLog = function(reg, id, pager = getOption("pager")) {
   checkRegistry(reg)
   syncRegistry(reg)

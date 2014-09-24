@@ -1,8 +1,12 @@
-#' Helper function to debug SSH mode.
+#' @title Helper function to debug SSH mode.
 #'
+#' @description
 #' Useful in case of configuration problems.
 #' Tries different operations of increasing difficulty
 #' and provides debug output on the console.
+#'
+#' Note that this function does not access nor use information specified for
+#' your cluster functions in your configuration.
 #'
 #' @param nodename [\code{character(1)}]\cr
 #'   Node on which worker should be constructed for the test.
@@ -21,6 +25,7 @@
 #'   Note that this must be shared for the worker.
 #'   Default is current working directory.
 #' @return Nothing.
+#' @family debug
 #' @export
 debugSSH = function(nodename, rhome = "",
   r.options = c("--no-save", "--no-restore", "--no-init-file", "--no-site-file"),

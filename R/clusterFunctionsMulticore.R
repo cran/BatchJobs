@@ -1,5 +1,6 @@
 #' Use multiple cores on local Linux machine to spawn parallel jobs.
 #'
+#' @description
 #' Jobs are spawned by starting multiple R sessions on the commandline
 #' (similar like on true batch systems).
 #' Packages \code{parallel} or \code{multicore} are not used in any way.
@@ -31,9 +32,13 @@
 #'   \url{https://github.com/tudo-r/BatchJobs/blob/master/inst/bin/linux-helper}
 #'   Default means to take it from package directory.
 #' @return [\code{\link{ClusterFunctions}}].
+#' @family clusterFunctions
 #' @export
 makeClusterFunctionsMulticore = function(ncpus, max.jobs, max.load, nice,
   r.options = c("--no-save", "--no-restore", "--no-init-file", "--no-site-file"), script) {
+
+  if (isWindows())
+    stop("ClusterFunctionsMulticore do not work in Windows")
 
   worker = makeWorkerLocalLinux(r.options, script, ncpus, max.jobs, max.load, nice)
 

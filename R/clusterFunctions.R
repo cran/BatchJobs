@@ -1,5 +1,6 @@
 #' Create a SubmitJobResult object.
 #'
+#' @description
 #' Use this function in your implementation of \code{\link{makeClusterFunctions}}
 #' to create a return value for the \code{submitJob} function.
 #' @param status [\code{integer(1)}]\cr
@@ -88,7 +89,7 @@ print.SubmitJobResult = function(x, ...) {
 #'   Currently ignored.
 #' @export
 #' @aliases ClusterFunctions
-#' @seealso \code{\link{makeClusterFunctionsInteractive}}, \code{\link{makeClusterFunctionsLocal}}, \code{\link{makeClusterFunctionsMulticore}}, \code{\link{makeClusterFunctionsSSH}}, \code{\link{makeClusterFunctionsTorque}}, \code{\link{makeClusterFunctionsSGE}}, \code{\link{makeClusterFunctionsSLURM}}
+#' @family clusterFunctions
 makeClusterFunctions = function(name, submitJob, killJob, listJobs, getArrayEnvirName, class = NULL, ...) {
   assertString(name)
   assertFunction(submitJob, c("conf", "reg", "job.name", "rscript", "log.file", "job.dir", "resources"))

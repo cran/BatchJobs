@@ -1,5 +1,6 @@
 #' Reset computational state of jobs.
 #'
+#' @description
 #' Reset state of jobs in the database. Useful under two circumstances:
 #' Either to re-submit them because of changes in e.g. external
 #' data or to resolve rare issues when jobs are killed in an unfortunate state
@@ -23,6 +24,7 @@
 #'   READ THE DETAILS SECTION!
 #'   Default is \code{FALSE}.
 #' @return Vector of reseted job ids.
+#' @family debug
 #' @export
 resetJobs = function(reg, ids, force = FALSE) {
   checkRegistry(reg)

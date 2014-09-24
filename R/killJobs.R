@@ -1,5 +1,6 @@
 #' Kill some jobs on the batch system.
 #'
+#' @description
 #' Kill jobs which have already been submitted to the batch system.
 #' If a job is killed its internal state is reset as if it had not been submitted at all.
 #'
@@ -21,6 +22,7 @@
 #'   Default is none.
 #' @return [\code{integer}]. Ids of killed jobs.
 #' @export
+#' @family debug
 #' @examples
 #' \dontrun{
 #' reg = makeRegistry(id = "BatchJobsExample", file.dir = tempfile(), seed = 123)

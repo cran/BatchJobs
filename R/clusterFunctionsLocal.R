@@ -1,5 +1,6 @@
 #' Create cluster functions for sequential execution on local host.
 #'
+#' @description
 #' All jobs executed under these cluster functions are executed
 #' sequentially, but in an independent, new R session.
 #' That is, \code{submitJob} does not return until the
@@ -10,6 +11,7 @@
 #' and \code{killJob} returns at once (for the same reason).
 #'
 #' @return [\code{\link{ClusterFunctions}}].
+#' @family clusterFunctions
 #' @export
 makeClusterFunctionsLocal = function() {
   submitJob = function(conf, reg, job.name, rscript, log.file, job.dir, resources, arrayjobs) {

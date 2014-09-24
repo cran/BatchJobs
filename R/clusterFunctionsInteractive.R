@@ -1,5 +1,6 @@
 #' Create cluster functions for sequential execution in same session.
 #'
+#' @description
 #' All jobs executed under these cluster functions are executed
 #' sequentially, in the same interactive R process that you currently are.
 #' That is, \code{submitJob} does not return until the
@@ -14,6 +15,7 @@
 #'   calculations but makes it next to impossible to debug.
 #'   Default is \code{TRUE}.
 #' @return [\code{\link{ClusterFunctions}}].
+#' @family clusterFunctions
 #' @export
 makeClusterFunctionsInteractive = function(write.logs = TRUE) {
   assertFlag(write.logs)

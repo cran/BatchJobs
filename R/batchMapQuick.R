@@ -1,5 +1,6 @@
 #' Combination of makeRegistry, batchMap and submitJobs.
 #'
+#' @description
 #' Combination of \code{\link{makeRegistry}}, \code{\link{batchMap}}
 #' and \code{\link{submitJobs}}
 #' for quick computations on the cluster.
@@ -34,7 +35,7 @@
 #'   Default is \code{FALSE}.
 #' @param inds [\code{integer}]\cr
 #'   Indices of ids / chunks to submit.
-#'   Default is all.
+#'   Default is all. If ids get chunked, this subsets the list of shuffled ids.
 #' @param resources [\code{list}]\cr
 #'   Required resources for all batch jobs.
 #'   Default is empty list.

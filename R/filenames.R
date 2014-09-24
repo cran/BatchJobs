@@ -21,7 +21,7 @@ checkDir = function(path, create = FALSE, check.empty = FALSE, check.posix = FAL
     stopf("Directory '%s' does not seem to be empty!", path)
 
   if (check.posix && getOption("BatchJobs.check.posix", TRUE)) {
-    path.abs = makePathAbsolute(path)
+    path.abs = sanitizePath(path, make.absolute = TRUE)
     if(! grepl("^[[:alnum:]:/_.-]+$", path.abs))
       stopf("Directory '%s' contains characters that are not fully portable according to POSIX standards. Allowed: a-z A-Z 0-9 : / . - _", path.abs)
   }
@@ -71,20 +71,8 @@ is.accessible = function(path) {
 }
 
 isPathFromRoot = function(path) {
-  substr(path, 1L, 1L) == "/"
+  (isWindows() & grepl("^[[:alpha:]]:", path)) | grepl("^[/\\]", path)
 }
-
-makePathAbsolute = function(path) {
-  if (isPathFromRoot(path))
-    return(path)
-  # FIXME: test this on windows
-  normalizePath(path, mustWork = FALSE, winslash = "/")
-}
-
-makePathsAbsolute = function(paths) {
-  vcapply(paths, makePathAbsolute)
-}
-
 
 getJobDirs = function(reg, ids, unique = FALSE) {
   if (reg$sharding) {
@@ -138,7 +126,6 @@ getPendingDir = function(file.dir)
 
 getExportDir = function(file.dir)
   file.path(file.dir, "exports")
-
 
 getPendingFile = function(reg, type, id, char = .OrderChars[type]) {
   file.path(getPendingDir(reg$file.dir), sprintf("pending_%s_%s_%i.sql", char, type, id))

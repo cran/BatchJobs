@@ -1,5 +1,6 @@
 #' Helper function to debug multicore mode.
 #'
+#' @description
 #' Useful in case of severe errors.
 #' Tries different operations of increasing difficulty
 #' and provides debug output on the console
@@ -9,6 +10,7 @@
 #'   a la \dQuote{--vanilla}.
 #'   Default is \code{c("--no-save", "--no-restore", "--no-init-file", "--no-site-file")}.
 #' @return Nothing.
+#' @family debug
 #' @export
 debugMulticore = function(r.options) {
   if (missing(r.options))

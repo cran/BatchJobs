@@ -19,6 +19,7 @@
 #' @template arg_template
 #' @template arg_list_jobs_cmd
 #' @template ret_cf
+#' @family clusterFunctions
 #' @export
 makeClusterFunctionsSGE = function(template.file, list.jobs.cmd = c("qstat",  "-u $USER")) {
   assertCharacter(list.jobs.cmd, min.len = 1L, any.missing = FALSE)
@@ -48,9 +49,7 @@ makeClusterFunctionsSGE = function(template.file, list.jobs.cmd = c("qstat",  "-
     #-----------------------------------------------------------------------------------------------------------------
     #  240935 0.00000 sleep 60   matthias     qw    04/03/2012 15:45:54                                    1
     # res = runOSCommandLinux("qstat", "-u $USER")
-    res = runOSCommandLinux(list.jobs.cmd[1L], list.jobs.cmd[-1L])$output
-    if (res$exit.code > 0L)
-      stopf("qstat produced exit code %i; output %s", res$exit.code, res$output)
+    res = runOSCommandLinux(list.jobs.cmd[1L], list.jobs.cmd[-1L])
 
     # drop first 2 header lines
     out = tail(res$output, -2L)

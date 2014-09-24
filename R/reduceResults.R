@@ -1,5 +1,6 @@
 #' Reduce results from result directory.
 #'
+#' @description
 #' The following functions provide ways to reduce result files into either specific R objects (like
 #' vectors, lists, matrices or data.frames) or to arbitrarily aggregate them, which is a more general
 #' operation.
@@ -222,5 +223,5 @@ reduceResultsDataFrame = function(reg, ids, part = NA_character_, fun, ..., use.
   if (!length(res))
     return(data.frame())
 
-  list2df(res, force.names = TRUE, strings.as.factors = strings.as.factors)
+  convertListOfRowsToDataFrame(res, strings.as.factors = strings.as.factors)
 }

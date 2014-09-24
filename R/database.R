@@ -12,8 +12,7 @@ dbGetConnection = function(drv, ...) {
 
 dbGetConnection.SQLiteDriver = function(drv, reg, flags = "ro", ...) {
   flags = switch(flags, "ro" = SQLITE_RO, "rw" = SQLITE_RW, "rwc" = SQLITE_RWC)
-  opts = list(dbname = file.path(reg$file.dir, "BatchJobs.db"),
-              flags = flags, drv = drv)
+  opts = list(dbname = file.path(reg$file.dir, "BatchJobs.db"), flags = flags, drv = drv)
   do.call(dbConnect, args = c(reg$db.options, opts))
 }
 
@@ -46,7 +45,9 @@ dbDoQueries = function(reg, queries, flags = "ro", max.retries = 200L, sleep = f
       # catch known temporary errors:
       # - database is still locked
       # - disk I/O error
-      if(!grepl("(lock|i/o)", tolower(ok)))
+      # - disk I/O error
+      # - database is only readable
+      if(!grepl("(lock|i/o|readonly)", tolower(ok)))
         stopf("Error in dbDoQueries. Displaying only 1st query. %s (%s)", ok, queries[1L])
     }
     # if we reach this here, DB was locked or temporary I/O error
@@ -63,11 +64,9 @@ dbDoQuery = function(reg, query, flags = "ro", max.retries = 200L, sleep = funct
     if (! is.error(res))
       return(res)
     res = as.character(res)
-    if(grepl("(lock|i/o)", tolower(res))) {
+    if(grepl("(lock|i/o|readonly)", tolower(res))) {
       Sys.sleep(runif(1L, min = 1, max = sleep(i)))
     } else {
-      print(res)
-      print(query)
       stopf("Error in dbDoQuery. %s (%s)", res, query)
     }
   }
@@ -127,7 +126,7 @@ dbCreateJobDefTable.Registry = function(reg) {
 
 dbCreateJobStatusTable = function(reg, extra.cols = "", constraints = "") {
   query = sprintf(paste("CREATE TABLE %s_job_status (job_id INTEGER PRIMARY KEY, job_def_id INTEGER,",
-                   "first_job_in_chunk_id INTEGER, seed INTEGER, resources_timestamp INTEGER, submitted INTEGER,",
+                   "first_job_in_chunk_id INTEGER, seed INTEGER, resources_timestamp INTEGER, memory REAL, submitted INTEGER,",
                    "started INTEGER, batch_job_id TEXT, node TEXT, r_pid INTEGER,",
                    "done INTEGER, error TEXT %s %s)"), reg$id, extra.cols, constraints)
   dbDoQuery(reg, query, flags = "rwc")
@@ -388,7 +387,7 @@ dbSendMessages = function(reg, msgs, max.retries = 200L, sleep = function(r) 1.0
       if (ok == "dbDoQueries: max retries reached, database is still locked!") {
         return(FALSE)
       } else {
-        #throw exception again
+        # throw exception again
         stopf("Error in dbSendMessages: %s", ok)
       }
     }
@@ -417,25 +416,25 @@ dbMakeMessageStarted = function(reg, job.ids, time = now(), type = "started") {
        type = type)
 }
 
-dbMakeMessageError = function(reg, job.ids, err.msg, type = "error") {
+dbMakeMessageError = function(reg, job.ids, err.msg, memory = -1, type = "error") {
   # FIXME how to escape ticks (')? Just replaced with double quotes for the moment
   err.msg = gsub("'", "\"", err.msg, fixed = TRUE)
   err.msg = gsub("[^[:print:]]", " ", err.msg)
-  updates = sprintf("error='%s', done=NULL", err.msg)
+  updates = sprintf("error='%s', done=NULL, memory='%.4f'", err.msg, memory)
   list(msg = sprintf("UPDATE %s_job_status SET %s WHERE job_id in (%s)", reg$id, updates, collapse(job.ids)),
        ids = job.ids,
        type = type)
 }
 
-dbMakeMessageDone = function(reg, job.ids, time = now(), type = "done") {
-  updates = sprintf("done=%i, error=NULL", time)
+dbMakeMessageDone = function(reg, job.ids, time = now(), memory = -1, type = "done") {
+  updates = sprintf("done=%i, error=NULL, memory='%.04f'", time, memory)
   list(msg = sprintf("UPDATE %s_job_status SET %s WHERE job_id in (%s)", reg$id, updates, collapse(job.ids)),
        ids = job.ids,
        type = type)
 }
 
 dbMakeMessageKilled = function(reg, job.ids, type = "last") {
-  updates = "resources_timestamp=NULL, submitted=NULL, started=NULL, batch_job_id=NULL, node=NULL, r_pid=NULL, done=NULL, error=NULL"
+  updates = "resources_timestamp=NULL, memory=NULL, submitted=NULL, started=NULL, batch_job_id=NULL, node=NULL, r_pid=NULL, done=NULL, error=NULL"
   list(msgs = sprintf("UPDATE %s_job_status SET %s WHERE job_id in (%s)", reg$id, updates, collapse(job.ids)),
        ids = job.ids,
        type = type)

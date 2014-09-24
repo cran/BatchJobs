@@ -1,3 +1,17 @@
+BatchJobs_1.4:
+- Added functions: batchExport, batchUnexport, loadExports
+- Added functions: addRegistryPackages, removeRegistryPackages
+- Added functions: addRegistrySourceFiles, addRegistrySourceDirs,
+  removeRegistrySourceFiles, removeRegistrySourceDirs
+- Added functions: getJobParamDf 
+- New option: "BatchJobs.clear.function.env". If TRUE the function environment
+  will be erased prior to writing it to the file system. Otherwise a warning is
+  issued if the environment exceeds 10Mb in size.
+- version 1.3 introduced a mini bug in the SGE interface
+  (via new list.jobs.cmd option). Fixed.
+- Memory usage is now stored in the database and can be queried using
+  getJobInfo().
+
 BatchJobs_1.3:
 - Reduced memory consumption and disk i/o if 'more.args' is used.
 - added option in Registry for absolute paths src.files and src.dirs
@@ -6,7 +20,7 @@ BatchJobs_1.3:
 - package 'methods' is always loaded on slaved to avoid problems with S4 code
 - some smaller fixes
 - in makeClusterFunctions* it is now to configurable via what command jobs are listed on the system
-- default for BatchJobs.posix.checks is now: OS != Windows
+- default for BatchJobs.check.posix is now: OS != Windows
 
 BatchJobs_1.2:
 - Fixed a bug where too many running jobs were queried on some Torque systems
