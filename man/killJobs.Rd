@@ -3,7 +3,7 @@
 \alias{killJobs}
 \title{Kill some jobs on the batch system.}
 \usage{
-killJobs(reg, ids)
+killJobs(reg, ids, progressbar)
 }
 \arguments{
 \item{reg}{[\code{\link{Registry}}]\cr
@@ -12,6 +12,10 @@ Registry.}
 \item{ids}{[\code{integer}]\cr
 Ids of jobs to kill.
 Default is none.}
+
+\item{progressbar}{[\code{logical(1)}]\cr
+Set to \code{FALSE} to disable the progress bar.
+To disable all progress bars, see \code{\link[BBmisc]{makeProgressBar}}.}
 }
 \value{
 [\code{integer}]. Ids of killed jobs.
@@ -37,6 +41,7 @@ reg = makeRegistry(id = "BatchJobsExample", file.dir = tempfile(), seed = 123)
 f = function(x) Sys.sleep(x)
 batchMap(reg, f, 1:10 + 5)
 submitJobs(reg)
+waitForJobs(reg)
 
 # kill all jobs currently _running_
 killJobs(reg, findRunning(reg))

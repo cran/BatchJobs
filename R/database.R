@@ -25,7 +25,7 @@ dbDoQueries = function(reg, queries, flags = "ro", max.retries = 200L, sleep = f
   for (i in seq_len(max.retries)) {
     con = dbConnectToJobsDB(reg, flags)
     ok = try ({
-      dbBeginTransaction(con)
+      dbBegin(con)
       ress = lapply(queries, dbGetQuery, con = con)
     }, silent = TRUE)
     if (!is.error(ok)) {
@@ -79,7 +79,7 @@ dbAddData = function(reg, tab, data) {
                   collapse(colnames(data)), collapse(rep.int("?", ncol(data))))
   con = dbConnectToJobsDB(reg, flags = "rw")
   on.exit(dbDisconnect(con))
-  dbBeginTransaction(con)
+  dbBegin(con)
   ok = try(dbGetPreparedQuery(con, query, bind.data = data))
   if(is.error(ok)) {
     dbRollback(con)
@@ -279,6 +279,14 @@ dbFindExpiredJobs = function(reg, ids, negate = FALSE, batch.ids) {
   # started, not terminated, not running
   query = sprintf("SELECT job_id FROM %s_job_status WHERE %s (started IS NOT NULL AND done IS NULL AND error is NULL AND
                   batch_job_id NOT IN (%s))", reg$id, if (negate) "NOT" else "", collapse(sqlQuote(batch.ids)))
+  dbSelectWithIds(reg, query, ids, where = FALSE)$job_id
+}
+
+dbFindDisappeared = function(reg, ids, negate = FALSE, batch.ids) {
+  if (missing(batch.ids))
+    batch.ids = getBatchIds(reg, "Cannot find jobs on system")
+  query = sprintf("SELECT job_id FROM %s_job_status WHERE %s (submitted IS NOT NULL AND started IS NULL AND batch_job_id NOT IN (%s))",
+                  reg$id, if (negate) "NOT" else "", collapse(sqlQuote(batch.ids)))
   dbSelectWithIds(reg, query, ids, where = FALSE)$job_id
 }
 

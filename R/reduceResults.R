@@ -39,6 +39,7 @@
 #'   as argument \code{res} for jobs with missing results.\cr
 #'   For the specialized reduction functions \code{reduceResults[Type]}: If not missing, \code{impute.val} is
 #'   used as a replacement for the return value of \code{fun} on missing results.
+#' @template arg_progressbar
 #' @param rows [\code{logical(1)}]\cr
 #'   Should the selected vectors be used as rows (or columns) in the result matrix?
 #'   Default is \code{TRUE}.
@@ -56,6 +57,7 @@
 #' f = function(x) x^2
 #' batchMap(reg, f, 1:5)
 #' submitJobs(reg)
+#' waitForJobs(reg)
 #'
 #' # reduce results to a vector
 #' reduceResultsVector(reg)
@@ -66,6 +68,7 @@
 #' f = function(x) list(a = x, b = as.character(2*x), c = x^2)
 #' batchMap(reg, f, 1:5)
 #' submitJobs(reg)
+#' waitForJobs(reg)
 #'
 #' # reduce results to a vector
 #' reduceResultsVector(reg, fun = function(job, res) res$a)
@@ -80,8 +83,7 @@
 #' print(str(reduceResultsDataFrame(reg)))
 #' # reduce results to a sum
 #' reduceResults(reg, fun = function(aggr, job, res) aggr+res$a, init = 0)
-# FIXME we need more documentation for reduceResultsReturnValue ...
-reduceResults = function(reg, ids, part = NA_character_, fun, init, impute.val, ...) {
+reduceResults = function(reg, ids, part = NA_character_, fun, init, impute.val, progressbar = TRUE, ...) {
   checkRegistry(reg)
   syncRegistry(reg)
   if (missing(ids)) {
@@ -97,6 +99,7 @@ reduceResults = function(reg, ids, part = NA_character_, fun, init, impute.val, 
     }
   }
   assertFunction(fun, c("aggr", "job", "res"))
+  assertFlag(progressbar)
 
   n = length(ids)
   info("Reducing ", n, " results...")
@@ -106,8 +109,7 @@ reduceResults = function(reg, ids, part = NA_character_, fun, init, impute.val, 
     return(init)
   }
 
-  bar = makeProgressBar(max = n, label = "reduceResults")
-  bar$set()
+  bar = getProgressBar(progressbar, max = n, label = "reduceResults")
 
   tryCatch({
     if (missing(init)) {
@@ -134,7 +136,8 @@ reduceResults = function(reg, ids, part = NA_character_, fun, init, impute.val, 
 
 #' @export
 #' @rdname reduceResults
-reduceResultsList = function(reg, ids, part = NA_character_, fun, ..., use.names = "ids", impute.val) {
+reduceResultsList = function(reg, ids, part = NA_character_, fun, ..., use.names = "ids",
+  impute.val, progressbar = TRUE) {
   checkRegistry(reg)
   syncRegistry(reg)
   if (missing(ids)) {
@@ -154,6 +157,7 @@ reduceResultsList = function(reg, ids, part = NA_character_, fun, ..., use.names
   else
     assertFunction(fun, c("job", "res"))
   use.names = convertUseNames(use.names)
+  assertFlag(progressbar)
 
   n = length(ids)
   info("Reducing %i results...", n)
@@ -167,8 +171,7 @@ reduceResultsList = function(reg, ids, part = NA_character_, fun, ..., use.names
     it = seq_len(n)
   }
 
-  bar = makeProgressBar(max = n, label = "reduceResults")
-  bar$set()
+  bar = getProgressBar(progressbar, max = n, label = "reduceResults")
   tryCatch({
     for (i in it) {
       # use lazy evaluation!

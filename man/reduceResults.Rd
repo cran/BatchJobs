@@ -7,10 +7,11 @@
 \alias{reduceResultsVector}
 \title{Reduce results from result directory.}
 \usage{
-reduceResults(reg, ids, part = NA_character_, fun, init, impute.val, ...)
+reduceResults(reg, ids, part = NA_character_, fun, init, impute.val,
+  progressbar = TRUE, ...)
 
 reduceResultsList(reg, ids, part = NA_character_, fun, ...,
-  use.names = "ids", impute.val)
+  use.names = "ids", impute.val, progressbar = TRUE)
 
 reduceResultsVector(reg, ids, part = NA_character_, fun, ...,
   use.names = "ids", impute.val)
@@ -57,6 +58,10 @@ as argument \code{res} for jobs with missing results.\cr
 For the specialized reduction functions \code{reduceResults[Type]}: If not missing, \code{impute.val} is
 used as a replacement for the return value of \code{fun} on missing results.}
 
+\item{progressbar}{[\code{logical(1)}]\cr
+Set to \code{FALSE} to disable the progress bar.
+To disable all progress bars, see \code{\link[BBmisc]{makeProgressBar}}.}
+
 \item{...}{[any]\cr
 Additional arguments to \code{fun}.}
 
@@ -90,6 +95,7 @@ reg = makeRegistry(id = "BatchJobsExample", file.dir = tempfile(), seed = 123)
 f = function(x) x^2
 batchMap(reg, f, 1:5)
 submitJobs(reg)
+waitForJobs(reg)
 
 # reduce results to a vector
 reduceResultsVector(reg)
@@ -100,6 +106,7 @@ reg = makeRegistry(id = "BatchJobsExample", file.dir = tempfile(), seed = 123)
 f = function(x) list(a = x, b = as.character(2*x), c = x^2)
 batchMap(reg, f, 1:5)
 submitJobs(reg)
+waitForJobs(reg)
 
 # reduce results to a vector
 reduceResultsVector(reg, fun = function(job, res) res$a)

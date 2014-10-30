@@ -47,6 +47,7 @@ batchMap(reg1, f, 1:10)
 
 # submit jobs and wait for the jobs to finish
 submitJobs(reg1)
+waitForJobs(reg1)
 
 # look at results
 reduceResults(reg1, fun = function(aggr,job,res) c(aggr, res))
@@ -59,6 +60,7 @@ batchMapResults(reg1, reg2, fun = g)
 
 # submit jobs and wait for the jobs to finish
 submitJobs(reg2)
+waitForJobs(reg2)
 
 # check results
 reduceResults(reg2, fun = function(aggr,job,res) c(aggr, res))

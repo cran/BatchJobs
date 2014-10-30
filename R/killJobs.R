@@ -20,6 +20,7 @@
 #' @param ids [\code{integer}]\cr
 #'   Ids of jobs to kill.
 #'   Default is none.
+#' @template arg_progressbar
 #' @return [\code{integer}]. Ids of killed jobs.
 #' @export
 #' @family debug
@@ -29,19 +30,21 @@
 #' f = function(x) Sys.sleep(x)
 #' batchMap(reg, f, 1:10 + 5)
 #' submitJobs(reg)
+#' waitForJobs(reg)
 #'
 #' # kill all jobs currently _running_
 #' killJobs(reg, findRunning(reg))
 #' # kill all jobs queued or running
 #' killJobs(reg, findNotTerminated(reg))
 #' }
-killJobs = function(reg, ids) {
+killJobs = function(reg, ids, progressbar) {
   checkRegistry(reg)
   syncRegistry(reg)
   if (missing(ids))
     return(invisible(integer(0L)))
   else
     ids = checkIds(reg, ids)
+  assertFlag(progressbar)
 
   conf = getBatchJobsConf()
   killfun = getKillJob("Cannot kill jobs")
@@ -77,7 +80,7 @@ killJobs = function(reg, ids) {
   doKill = function(bjids) {
     n = length(bjids)
     old.warn = getOption("warn")
-    bar = makeProgressBar(min = 0L, max = n, label = "killJobs")
+    bar = getProgressBar(progressbar, min = 0L, max = n, label = "killJobs")
     on.exit({ options(warn = old.warn); bar$kill() })
 
     options(warn = 0L)
