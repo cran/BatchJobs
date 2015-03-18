@@ -41,13 +41,17 @@ assignConf = function(conf) {
   lapply(ls(conf), function(x) assign(x, conf[[x]], envir = conf.in.ns))
 }
 
-# reads package conf, userhome conf, working dir conf
-# then assigns them to namespace
-readConfs = function(path) {
+# locates package conf, userhome conf, working dir conf
+findConfigs = function(path=find.package("BatchJobs")) {
   fn.pack = file.path(path, "etc", "BatchJobs_global_config.R")
   fn.user = path.expand("~/.BatchJobs.R")
   fn.wd = suppressWarnings(normalizePath(".BatchJobs.R"))
-  conffiles = Filter(file.exists, unique(c(fn.pack, fn.user, fn.wd)))
+  Filter(file.exists, unique(c(fn.pack, fn.user, fn.wd)))
+}
+
+# reads available config files and assigns them to namespace
+readConfs = function(path=find.package("BatchJobs")) {
+  conffiles = findConfigs(path)
   if (length(conffiles) == 0L) {
     warning("No configuation found at all. Not in package, not in user.home, not in work dir!")
     assignConfDefaults()
@@ -67,7 +71,7 @@ assignConfDefaults = function() {
   conf$mail.done = "none"
   conf$mail.error = "none"
   conf$db.driver = "SQLite"
-  conf$db.options = list()
+  conf$db.options = list(pragmas = "busy_timeout=5000")
   conf$default.resources = list()
   conf$debug = FALSE
   conf$raise.warnings = FALSE
@@ -138,9 +142,9 @@ checkConfElements = function(cluster.functions, mail.to, mail.from,
   if (!missing(db.driver))
     assertString(db.driver)
   if (!missing(db.options))
-    assertList(db.options)
+    assertList(db.options, names = "named")
   if (!missing(default.resources))
-    assertList(default.resources)
+    assertList(default.resources, names = "named")
   if (!missing(debug))
     assertFlag(debug)
   if (!missing(raise.warnings))
@@ -178,8 +182,8 @@ printableConf = function(conf) {
     "  fs.timeout: %s\n",
     sep = "\n")
   sprintf(fmt, x$cluster.functions$name, x$mail.from, x$mail.to, x$mail.start, x$mail.done,
-          x$mail.error, convertToShortString(x$default.resources), x$debug, x$raise.warnings,
-          x$staged.queries, x$max.concurrent.jobs, x$fs.timeout)
+    x$mail.error, convertToShortString(x$default.resources), x$debug, x$raise.warnings,
+    x$staged.queries, x$max.concurrent.jobs, x$fs.timeout)
 }
 
 

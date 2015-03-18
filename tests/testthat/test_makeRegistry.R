@@ -29,3 +29,14 @@ test_that("loadRegistry works", {
   reg2 = loadRegistry(reg1$file.dir)
   expect_is(reg2, "Registry")
 })
+
+
+test_that("torturing makeRegistry/removeRegistry to create registries over and over works", {
+  ## This fails (at least) on Windows if we set the working directory
+  ## to be the current working directory, i.e. ".".  This can be achieve
+  ## using Sys.setenv("R_EXPENSIVE_EXAMPLE_OK"=TRUE).
+  for (ii in 1:50) {
+    reg = makeTestRegistry()
+    expect_true(removeRegistry(reg, ask = "no"))
+  }
+})
