@@ -12,14 +12,16 @@ URL: https://github.com/tudo-r/BatchJobs
 BugReports: https://github.com/tudo-r/BatchJobs/issues
 MailingList: batchjobs@googlegroups.com
 License: BSD_2_clause + file LICENSE
-Depends: R (>= 2.15.0), BBmisc (>= 1.9), methods
-Imports: brew, checkmate (>= 1.5.1), DBI, digest, fail (>= 1.2),
-        parallel, RSQLite (>= 1.0.0), sendmailR, stats, stringr, utils
+Depends: R (>= 3.0.0), BBmisc (>= 1.9), methods
+Imports: backports (>= 1.1.1), brew, checkmate (>= 1.8.0), data.table
+        (>= 1.9.6), DBI, digest, parallel, RSQLite (>= 1.0.9011),
+        sendmailR, stats, stringi (>= 0.4-1), utils
 Suggests: MASS, testthat
 LazyData: yes
 ByteCompile: yes
-Version: 1.6
-Packaged: 2015-03-18 16:40:05 UTC; bischl
+Version: 1.7
+RoxygenNote: 6.0.1
 NeedsCompilation: no
+Packaged: 2017-11-28 15:42:44 UTC; bischl
 Repository: CRAN
-Date/Publication: 2015-03-18 18:01:21
+Date/Publication: 2017-11-28 17:41:32 UTC

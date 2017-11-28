@@ -31,41 +31,79 @@
 #' @name BatchJobs
 NULL
 
-#' @import BBmisc
-#' @import checkmate
 #' @import utils
 #' @import stats
+#' @import methods
+#' @import checkmate
+#' @import data.table
 #' @import DBI
 #' @import RSQLite
-#' @import fail
-#' @import methods
 #' @importFrom digest digest
 #' @importFrom brew brew
 #' @importFrom sendmailR sendmail
-#' @importFrom stringr str_extract
-#' @importFrom stringr str_trim
+#' @importFrom stringi stri_extract_first_regex
+#' @importFrom stringi stri_trim_both
+#' @importFrom stringi stri_split_fixed
+#' @importFrom stringi stri_split_regex
+#' @importFrom BBmisc %nin%
+#' @importFrom BBmisc chunk
+#' @importFrom BBmisc checkListElementClass
+#' @importFrom BBmisc clipString
+#' @importFrom BBmisc collapse
+#' @importFrom BBmisc convertToShortString
+#' @importFrom BBmisc convertListOfRowsToDataFrame
+#' @importFrom BBmisc dropNamed
+#' @importFrom BBmisc extractSubList
+#' @importFrom BBmisc filterNull
+#' @importFrom BBmisc insert
+#' @importFrom BBmisc isDirectory
+#' @importFrom BBmisc is.error
+#' @importFrom BBmisc isProperlyNamed
+#' @importFrom BBmisc isScalarNA
+#' @importFrom BBmisc isWindows
+#' @importFrom BBmisc lsort
+#' @importFrom BBmisc namedList
+#' @importFrom BBmisc names2
+#' @importFrom BBmisc makeFileCache
+#' @importFrom BBmisc makeProgressBar
+#' @importFrom BBmisc makeSimpleFileLogger
+#' @importFrom BBmisc save2 load2
+#' @importFrom BBmisc requirePackages
+#' @importFrom BBmisc setClasses setColNames setRowNames
+#' @importFrom BBmisc seq_col seq_row
+#' @importFrom BBmisc suppressAll
+#' @importFrom BBmisc system3
+#' @importFrom BBmisc vcapply viapply vlapply vnapply
+#' @importFrom BBmisc warningf stopf messagef catf
+#' @importFrom BBmisc which.first
 NULL
 
-.BatchJobs.conf = new.env()
+.BatchJobs.conf = new.env(parent = emptyenv())
+.BatchJobs.conffiles = character(0L)
 
 .onAttach = function(libname, pkgname) {
-  if (getOption("BatchJobs.load.config", TRUE) && !isOnSlave()) {
-    if (missing(libname) || missing(pkgname)) {
-      # this can happen with testthat while loading from skel/
-      readConfs(find.package(package = "BatchJobs"))
-    } else {
-      readConfs(file.path(libname, pkgname))
-    }
-    if (getOption("BatchJobs.verbose", default = TRUE))
-      packageStartupMessage(printableConf(getConfig()))
+  packageStartupMessage("The development of BatchJobs and BatchExperiments is discontinued.")
+  packageStartupMessage("Consider switching to 'batchtools' for new features and improved stability")
+  if (getOption("BatchJobs.verbose", default = TRUE)) {
+    cf = .BatchJobs.conffiles
+    packageStartupMessage(sprintf("Sourced %i configuration files: ", length(cf)))
+    for (i in seq_along(cf))
+      packageStartupMessage(sprintf("  %i: %s", i, cf[i]))
+    conf = getConfig()
+    packageStartupMessage(printableConf(conf))
   }
 }
 
 .onLoad = function(libname, pkgname) {
-# checking for posix might create problem in windwos tests
   options(BatchJobs.check.posix = getOption("BatchJobs.check.posix", default = !isWindows()))
   options(BatchJobs.clear.function.env = getOption("BatchJobs.clear.function.env", default = FALSE))
+  backports::import(pkgname)
+
   if (!isOnSlave()) {
     assignConfDefaults()
+    if (getOption("BatchJobs.load.config", TRUE)) {
+      pkg = if(missing(libname) || missing(pkgname)) find.package(package = "BatchJobs") else file.path(libname, pkgname)
+      .BatchJobs.conffiles <<- readConfs(pkg)
+    }
   }
 }
