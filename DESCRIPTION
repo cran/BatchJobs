@@ -19,9 +19,10 @@ Imports: backports (>= 1.1.1), brew, checkmate (>= 1.8.0), data.table
 Suggests: MASS, testthat
 LazyData: yes
 ByteCompile: yes
-Version: 1.7
-RoxygenNote: 6.0.1
+Version: 1.8
+RoxygenNote: 6.1.1
+Encoding: UTF-8
 NeedsCompilation: no
-Packaged: 2017-11-28 15:42:44 UTC; bischl
+Packaged: 2019-05-09 08:41:04 UTC; lang
 Repository: CRAN
-Date/Publication: 2017-11-28 17:41:32 UTC
+Date/Publication: 2019-05-14 22:00:16 UTC
