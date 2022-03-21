@@ -17,12 +17,10 @@ Imports: backports (>= 1.1.1), brew, checkmate (>= 1.8.0), data.table
         (>= 1.9.6), DBI, digest, parallel, RSQLite (>= 1.0.9011),
         sendmailR, stats, stringi (>= 0.4-1), utils
 Suggests: MASS, testthat
-LazyData: yes
-ByteCompile: yes
-Version: 1.8
-RoxygenNote: 6.1.1
+Version: 1.9
+RoxygenNote: 7.1.2
 Encoding: UTF-8
 NeedsCompilation: no
-Packaged: 2019-05-09 08:41:04 UTC; lang
+Packaged: 2022-03-21 10:39:57 UTC; michel
 Repository: CRAN
-Date/Publication: 2019-05-14 22:00:16 UTC
+Date/Publication: 2022-03-21 11:30:02 UTC
